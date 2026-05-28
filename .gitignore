@@ -3,7 +3,7 @@
 build/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
-
+gradle/
 # IDE Specific (IntelliJ, Eclipse, VSCode)
 .idea/
 *.iml
