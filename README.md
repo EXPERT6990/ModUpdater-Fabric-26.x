@@ -1,0 +1,1 @@
+# ModUpdater-Fabric-26.x
