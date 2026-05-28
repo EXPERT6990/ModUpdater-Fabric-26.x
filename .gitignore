@@ -1,0 +1,32 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+
+# IDE Specific (IntelliJ, Eclipse, VSCode)
+.idea/
+*.iml
+*.ipr
+*.iws
+.settings/
+bin/
+.classpath
+.project
+.vscode/
+
+# Fabric
+.fabric/
+runs/
+
+# OS Specific
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+debug.log
+crash-reports/
+
+# Temporary Mod Updater files (Just in case you run the game in dev mode)
+.pending_updates/

@@ -1,0 +1,141 @@
+ 
+plugins {
+    id 'net.fabricmc.fabric-loom' version "${loom_version}"
+    id 'maven-publish'
+}
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+    archivesName = project.archives_base_name
+}
+
+repositories {
+    // TerraformersMC for Mod Menu
+    maven { 
+        name = "TerraformersMC" 
+        url = "https://maven.terraformersmc.com/releases/" 
+    }
+    // isxander-releases for YACL
+    maven { 
+        name = "isxander-releases" 
+        url = "https://maven.isxander.dev/releases" 
+    }
+
+    maven { url "https://api.modrinth.com/maven" }
+	flatDir {
+        dirs 'libs'
+    }
+
+}
+
+// loom {
+// 	splitEnvironmentSourceSets()
+
+// 	mods {
+// 		"modupdater" {
+// 			sourceSet sourceSets.main
+// 			sourceSet sourceSets.client
+// 		}
+// 	}
+
+// }
+
+dependencies {
+    // The core Minecraft 26.1.2 dependency
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    
+    // Strict enforcement of Official Mojang Mappings
+    //mappings loom.officialMojangMappings()
+    
+    // Fabric Loader 0.19.2+
+    implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+
+    // Fabric API
+    implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+
+    // Mod Menu Integration
+    implementation "com.terraformersmc:modmenu:${project.modmenu_version}"
+
+    // YACL Integration via Maven
+    //implementation "dev.isxander:yet_another_config_lib_v3:${project.yacl_version}-fabric"
+    implementation name: 'yacl-3.9.3'
+}
+
+processResources {
+    inputs.property "version", project.version
+
+    filesMatching("fabric.mod.json") {
+        expand "version": project.version
+    }
+}
+
+// Minecraft 26.1+ strictly requires Java 25
+tasks.withType(JavaCompile).configureEach {
+    it.options.release = 25
+}
+
+java {
+    withSourcesJar()
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
+}
+
+jar {
+	def projectName = project.name
+	inputs.property "projectName", projectName
+
+	from("LICENSE") {
+		rename { "${it}_$projectName"}
+	}
+}
+
+
+// configure the maven publication
+publishing {
+	publications {
+		create("mavenJava", MavenPublication) {
+			from components.java
+		}
+	}
+
+	// See https://docs.gradle.org/current/userguide/publishing_maven.html for information on how to set up publishing.
+	repositories {
+		// Add repositories to publish to here.
+		// Notice: This block does NOT have the same function as the block in the top level.
+		// The repositories here will be used for publishing your artifact, not for
+		// retrieving dependencies.
+	}
+}
+
+sourceSets {
+    bootstrapper {
+        java {
+            srcDirs = ['src/bootstrapper/java']
+        }
+    }
+}
+
+task buildBootstrapper(type: Jar) {
+    archiveFileName = 'updater.jar'
+    from sourceSets.bootstrapper.output
+    manifest {
+        attributes 'Main-Class': 'com.theexpert9.bootstrapper.Main'
+    }
+}
+
+// Modify your existing processResources block to look like this:
+processResources {
+    dependsOn buildBootstrapper
+    
+    // Embed the bootstrapper jar inside our main mod
+    from(buildBootstrapper.archiveFile) {
+        into 'assets/modupdater/'
+    }
+
+    inputs.property "version", project.version
+    filesMatching("fabric.mod.json") {
+        expand "version": project.version
+    }
+}

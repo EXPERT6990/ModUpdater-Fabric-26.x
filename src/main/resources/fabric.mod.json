@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "modupdater",
+  "version": "${version}",
+  "name": "Mod Updater",
+  "description": "Automatically checks, downloads, and applies mod updates from Modrinth.",
+  "authors": ["TheExpert9"],
+  "contact": {
+    "repo": "https://github.com/TheExpert9/ModUpdater"
+  },
+  "license": "MIT",
+  "icon": "assets/modupdater/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": ["com.theexpert9.modupdater.ModUpdater"],
+    "modmenu": ["com.theexpert9.modupdater.gui.ModMenuIntegration"]
+  },
+  "depends": {
+    "fabricloader": ">=0.19.2",
+    "minecraft": ">=26.1",
+    "java": ">=25",
+    "fabric-api": "*",
+    "modmenu": "*",
+    "yet_another_config_lib_v3": "*"
+  }
+}

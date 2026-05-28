@@ -1,0 +1,10 @@
+{
+  "modmenu.nameTranslation.autoupdater": "Modrinth Auto-Updater",
+  "modmenu.descriptionTranslation.autoupdater": "In-game mod updater and package manager for Modrinth.",
+  "gui.autoupdater.title": "Modrinth Auto-Updater",
+  "gui.autoupdater.button.check": "Check Updates",
+  "gui.autoupdater.button.download": "Download & Apply",
+  "gui.autoupdater.status.ready": "Ready to scan.",
+  "gui.autoupdater.status.scanning": "Scanning local mods and querying Modrinth (Please wait)...",
+  "gui.autoupdater.status.success": "Downloads complete! Restart game to apply updates."
+}
