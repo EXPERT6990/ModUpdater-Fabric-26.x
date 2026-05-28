@@ -28,10 +28,10 @@ Ensure these mods are in your `mods/` folder alongside this one:
 
 This project uses the standard Gradle wrapper. To compile the mod yourself:
 
-1. Clone the repository: `git clone https://github.com/TheExpert9/ModUpdater.git`
+1. Clone the repository
 2. Open a terminal in the project directory.
 3. Run the build command:
-   - Windows: `gradlew build`
+   - Windows: `.\gradlew.bat build`
    - Linux/Mac: `./gradlew build`
 4. Grab the compiled `.jar` file from `build/libs/`.
 
