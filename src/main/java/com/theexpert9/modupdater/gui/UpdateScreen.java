@@ -231,8 +231,6 @@
 //     }
 // }
 
-
-
 package com.theexpert9.modupdater.gui;
 
 import com.theexpert9.modupdater.api.ModrinthClient;
@@ -309,10 +307,10 @@ public class UpdateScreen {
                         .build())
                 .build();
 
-        // --- TAB 3: MONITORED MODS (For Manual Mode) ---
+        // --- TAB 3: MONITORED MODS ---
         ConfigCategory.Builder monitoredMods = ConfigCategory.createBuilder()
                 .name(Component.literal("Monitored Mods"))
-                .tooltip(Component.literal("Select which mods to scan when Auto Check is set to MANUAL."));
+                .tooltip(Component.literal("Uncheck a mod to ignore it during MANUAL scans."));
 
         try (Stream<Path> stream = Files.list(FabricLoader.getInstance().getGameDir().resolve("mods"))) {
             stream.filter(path -> path.toString().endsWith(".jar")).forEach(path -> {
@@ -320,11 +318,14 @@ public class UpdateScreen {
                 if (!filename.startsWith("fabric-") && !filename.equals("updater.jar")) {
                     monitoredMods.option(Option.<Boolean>createBuilder()
                             .name(Component.literal(filename))
-                            .binding(false,
-                                    () -> ConfigManager.getConfig().selectedMods.contains(filename),
+                            // Default to TRUE (enabled) unless it is in the ignoredMods list
+                            .binding(true,
+                                    () -> !ConfigManager.getConfig().ignoredMods.contains(filename),
                                     val -> {
-                                        if (val) ConfigManager.getConfig().selectedMods.add(filename);
-                                        else ConfigManager.getConfig().selectedMods.remove(filename);
+                                        if (val) ConfigManager.getConfig().ignoredMods.remove(filename);
+                                        else if (!ConfigManager.getConfig().ignoredMods.contains(filename)) {
+                                            ConfigManager.getConfig().ignoredMods.add(filename);
+                                        }
                                     })
                             .controller(TickBoxControllerBuilder::create)
                             .build());
@@ -337,12 +338,11 @@ public class UpdateScreen {
                 .category(updatesCategory.build())
                 .category(settingsCategory)
                 .category(monitoredMods.build())
-                .save(ConfigManager::save) // Saves settings to config file when UI closes
+                .save(ConfigManager::save)
                 .build()
                 .generateScreen(parent);
     }
 
-    // --- The Silent Startup Checker ---
     public static int getAvailableUpdateCountSilent() {
         try {
             Map<String, String> hashToFilename = new HashMap<>();
@@ -352,8 +352,9 @@ public class UpdateScreen {
                 stream.filter(path -> path.toString().endsWith(".jar")).forEach(path -> {
                     String filename = path.getFileName().toString();
                     if (!filename.startsWith("fabric-") && !filename.equals("updater.jar")) {
-                        // Strict filtering based on user config
-                        if (config.autoCheckMode == ConfigManager.AutoCheckMode.ALL || config.selectedMods.contains(filename)) {
+                        // Include if ALL, or if MANUAL and NOT ignored
+                        if (config.autoCheckMode == ConfigManager.AutoCheckMode.ALL || 
+                           (config.autoCheckMode == ConfigManager.AutoCheckMode.MANUAL && !config.ignoredMods.contains(filename))) {
                             try { hashToFilename.put(getFileHash(path), filename); } catch (Exception ignored) {}
                         }
                     }
@@ -381,7 +382,6 @@ public class UpdateScreen {
         } catch (Exception e) { return 0; }
     }
 
-    // --- The Manual UI Checker ---
     private static void checkForUpdates(Screen parent) {
         selectedMods.clear();
         Minecraft.getInstance().setScreen(buildScreen(parent, new ArrayList<>(), "checking", "Checking hashes... Please Wait"));
@@ -395,10 +395,10 @@ public class UpdateScreen {
                 stream.filter(path -> path.toString().endsWith(".jar")).forEach(path -> {
                     String filename = path.getFileName().toString();
                     if (!filename.startsWith("fabric-") && !filename.equals("updater.jar")) {
-                        // Apply config filters to manual checks as well
+                        // Manual button click checks ALL, or MANUAL if not ignored
                         if (config.autoCheckMode == ConfigManager.AutoCheckMode.ALL || 
-                           (config.autoCheckMode == ConfigManager.AutoCheckMode.MANUAL && config.selectedMods.contains(filename)) ||
-                            config.autoCheckMode == ConfigManager.AutoCheckMode.NONE) { // If set to NONE, manual button checks everything
+                            config.autoCheckMode == ConfigManager.AutoCheckMode.NONE ||
+                           (config.autoCheckMode == ConfigManager.AutoCheckMode.MANUAL && !config.ignoredMods.contains(filename))) { 
                             try { hashToFilename.put(getFileHash(path), filename); } catch (Exception ignored) {}
                         }
                     }
@@ -433,8 +433,72 @@ public class UpdateScreen {
         });
     }
 
-    // Keep downloadSelectedMods, applyAndRestart, and getFileHash exactly the same as your current version!
-    private static void downloadSelectedMods(Screen parent, List<PendingUIUpdate> availableUpdates) { /* Keep Existing */ }
-    private static void applyAndRestart() { /* Keep Existing */ }
-    private static String getFileHash(Path path) throws Exception { /* Keep Existing */ return ""; } // Truncated for brevity
+    private static void downloadSelectedMods(Screen parent, List<PendingUIUpdate> availableUpdates) {
+        List<PendingUIUpdate> toDownload = availableUpdates.stream()
+                .filter(u -> selectedMods.getOrDefault(u.projectId(), false))
+                .toList();
+
+        if (toDownload.isEmpty()) return;
+
+        AtomicInteger completedCount = new AtomicInteger(0);
+        int total = toDownload.size();
+
+        for (PendingUIUpdate update : toDownload) {
+            DownloadManager.downloadMod(update.downloadUrl(), update.newFilename(), (percent, speedMBps) -> {
+                Minecraft.getInstance().execute(() -> {
+                    String progress = String.format("Downloading %s... %.0f%% (%.1f MB/s)", update.newFilename(), percent, speedMBps);
+                    Minecraft.getInstance().setScreen(buildScreen(parent, availableUpdates, "downloading", progress));
+                });
+            }).thenAccept(path -> {
+                StatusWriter.appendUpdate(update.oldFilename(), update.newFilename());
+                if (completedCount.incrementAndGet() >= total) {
+                    Minecraft.getInstance().execute(() -> {
+                        Minecraft.getInstance().setScreen(buildScreen(parent, availableUpdates, "done", "Downloads Complete - RESTART GAME"));
+                    });
+                }
+            });
+        }
+    }
+
+    private static void applyAndRestart() {
+        try {
+            Path pendingDir = DownloadManager.getPendingUpdatesDir();
+            Path updaterPath = pendingDir.resolve("updater.jar");
+
+            try (InputStream is = UpdateScreen.class.getResourceAsStream("/assets/modupdater/updater.jar")) {
+                if (is != null) Files.copy(is, updaterPath, StandardCopyOption.REPLACE_EXISTING);
+                else return;
+            }
+
+            long pid = ProcessHandle.current().pid();
+            String modsPath = FabricLoader.getInstance().getGameDir().resolve("mods").toAbsolutePath().toString();
+            String javaBinaryPath = ProcessHandle.current().info().command().orElse("java");
+
+            Runtime.getRuntime().exec(new String[]{
+                    javaBinaryPath, "-jar", updaterPath.toAbsolutePath().toString(), String.valueOf(pid), modsPath
+            });
+
+            Minecraft.getInstance().stop();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    // High-speed SHA-1 hashing algorithm using bitwise masking
+    private static String getFileHash(Path path) throws Exception {
+        MessageDigest digest = MessageDigest.getInstance("SHA-1");
+        try (InputStream is = Files.newInputStream(path)) {
+            byte[] buffer = new byte[8192];
+            int read;
+            while ((read = is.read(buffer)) > 0) {
+                digest.update(buffer, 0, read);
+            }
+        }
+        StringBuilder hexString = new StringBuilder();
+        for (byte b : digest.digest()) {
+            // Apply & 0xFF to prevent Java from keeping the negative sign on signed bytes
+            hexString.append(String.format("%02x", b & 0xFF)); 
+        }
+        return hexString.toString();
+    }
 }
