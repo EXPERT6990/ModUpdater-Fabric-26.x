@@ -9,26 +9,28 @@
 // import dev.isxander.yacl3.api.YetAnotherConfigLib;
 // import dev.isxander.yacl3.api.controller.TickBoxControllerBuilder;
 // import net.fabricmc.loader.api.FabricLoader;
-// import net.fabricmc.loader.api.ModContainer;
 // import net.minecraft.client.Minecraft;
 // import net.minecraft.client.gui.screens.Screen;
 // import net.minecraft.network.chat.Component;
+
 // import java.io.InputStream;
 // import java.nio.file.Files;
 // import java.nio.file.Path;
 // import java.nio.file.StandardCopyOption;
+// import java.security.MessageDigest;
 // import java.util.ArrayList;
 // import java.util.HashMap;
 // import java.util.List;
 // import java.util.Map;
 // import java.util.concurrent.CompletableFuture;
 // import java.util.concurrent.atomic.AtomicInteger;
+// import java.util.stream.Stream;
 
 // public class UpdateScreen {
 
-//     private record PendingUIUpdate(String modId, String oldVersion, String newVersion, String downloadUrl, String newFilename) {}
+//     // Notice we now track oldFilename directly for 100% accurate file swapping
+//     private record PendingUIUpdate(String projectId, String oldFilename, String newVersion, String downloadUrl, String newFilename) {}
 
-//     // Holds the checkbox states
 //     private static final Map<String, Boolean> selectedMods = new HashMap<>();
 
 //     public static Screen create(Screen parent) {
@@ -40,47 +42,29 @@
 //                 .name(Component.literal("Available Updates"))
 //                 .tooltip(Component.literal("Check Modrinth for updates."));
 
-//         // MAIN ACTION BUTTON
 //         categoryBuilder.option(ButtonOption.createBuilder()
 //                 .name(Component.literal(statusText))
 //                 .action((screen, buttonOption) -> {
-//                     if (state.equals("idle")) {
-//                         checkForUpdates(parent);
-//                     } else if (state.equals("ready")) {
-//                         downloadSelectedMods(parent, availableUpdates);
-//                     } else if (state.equals("done")) {
-//                         applyAndRestart();
-//                     }
-//                 })
-//                 .build());
+//                     if (state.equals("idle")) checkForUpdates(parent);
+//                     else if (state.equals("ready")) downloadSelectedMods(parent, availableUpdates);
+//                     else if (state.equals("done")) applyAndRestart();
+//                 }).build());
 
-//         // BATCH SELECT BUTTONS (Only show when ready)
 //         if (state.equals("ready") && !availableUpdates.isEmpty()) {
 //             categoryBuilder.option(ButtonOption.createBuilder()
 //                     .name(Component.literal("Select All / Deselect All"))
 //                     .action((screen, buttonOption) -> {
 //                         boolean anyFalse = selectedMods.containsValue(false);
-//                         for (String key : selectedMods.keySet()) {
-//                             selectedMods.put(key, anyFalse);
-//                         }
-//                         // Refresh UI to show checked boxes
+//                         for (String key : selectedMods.keySet()) selectedMods.put(key, anyFalse);
 //                         Minecraft.getInstance().setScreen(buildScreen(parent, availableUpdates, state, statusText));
-//                     })
-//                     .build());
+//                     }).build());
 //         }
 
-//         // GENERATE CHECKBOXES FOR EACH MOD
 //         for (PendingUIUpdate update : availableUpdates) {
-//             // Default to true if not in map
-//             selectedMods.putIfAbsent(update.modId(), true);
-
+//             selectedMods.putIfAbsent(update.projectId(), true);
 //             categoryBuilder.option(Option.<Boolean>createBuilder()
-//                     .name(Component.literal("📦 " + update.modId() + " (" + update.oldVersion() + " ➔ " + update.newVersion() + ")"))
-//                     .binding(
-//                             true,
-//                             () -> selectedMods.get(update.modId()),
-//                             val -> selectedMods.put(update.modId(), val)
-//                     )
+//                     .name(Component.literal("📦 " + update.oldFilename() + " ➔ " + update.newFilename()))
+//                     .binding(true, () -> selectedMods.get(update.projectId()), val -> selectedMods.put(update.projectId(), val))
 //                     .controller(TickBoxControllerBuilder::create)
 //                     .build());
 //         }
@@ -94,35 +78,66 @@
 
 //     private static void checkForUpdates(Screen parent) {
 //         selectedMods.clear();
-//         Minecraft.getInstance().setScreen(buildScreen(parent, new ArrayList<>(), "checking", "Checking... Please Wait"));
+//         Minecraft.getInstance().setScreen(buildScreen(parent, new ArrayList<>(), "checking", "Checking hashes... Please Wait"));
 
 //         CompletableFuture.supplyAsync(() -> {
 //             List<PendingUIUpdate> updates = new ArrayList<>();
-//             String gameVersion = "26.1.2";
+//             Map<String, String> hashToFilename = new HashMap<>();
+//             Path modsDir = FabricLoader.getInstance().getGameDir().resolve("mods");
 
-//             for (ModContainer mod : FabricLoader.getInstance().getAllMods()) {
-//                 String modId = mod.getMetadata().getId();
-//                 String currentVersion = mod.getMetadata().getVersion().getFriendlyString();
+//             // 1. Generate SHA-1 hashes for all local .jar files
+//             try (Stream<Path> stream = Files.list(modsDir)) {
+//                 stream.filter(path -> path.toString().endsWith(".jar")).forEach(path -> {
+//                     try {
+//                         String filename = path.getFileName().toString();
+//                         // Ignore the updater itself and fabric api fragments
+//                         if (!filename.startsWith("fabric-") && !filename.equals("updater.jar")) {
+//                             hashToFilename.put(getFileHash(path), filename);
+//                         }
+//                     } catch (Exception ignored) {}
+//                 });
+//             } catch (Exception e) {
+//                 return updates;
+//             }
 
-//                  if (modId.equals("minecraft") || modId.equals("java") || modId.startsWith("fabric")) continue;
+//             if (hashToFilename.isEmpty()) return updates;
 
-//                 try {
-//                     ModrinthClient.ModVersion[] versions = ModrinthClient.getLatestVersions(modId, gameVersion).join();
+//             // 2. Perform the 1-second bulk API query
+//             Map<String, ModrinthClient.ModVersion> apiResponse = ModrinthClient.checkBulkUpdates(
+//                     new ArrayList<>(hashToFilename.keySet()), "26.1.2"
+//             ).join();
 
-//                     // Strip build metadata (everything after the '+') for an accurate comparison
-//                     String cleanCurrent = currentVersion.split("\\+")[0];
-//                     String cleanLatest = versions[0].version_number().split("\\+")[0];
+//             // 3. Process the response
+//             for (Map.Entry<String, ModrinthClient.ModVersion> entry : apiResponse.entrySet()) {
+//                 String oldHash = entry.getKey();
+//                 ModrinthClient.ModVersion newVersionData = entry.getValue();
+//                 String oldFilename = hashToFilename.get(oldHash);
 
-//                     if (versions != null && versions.length > 0 && !cleanCurrent.equals(cleanLatest)) {
-//                         ModrinthClient.ModFile primaryFile = versions[0].files().get(0);
-//                         updates.add(new PendingUIUpdate(modId, currentVersion, versions[0].version_number(), primaryFile.url(), primaryFile.filename()));
-//                     }
-//                 } catch (Exception ignored) {}
+//                 if (newVersionData.files() == null || newVersionData.files().isEmpty()) continue;
+
+//                 ModrinthClient.ModFile primaryFile = newVersionData.files().stream()
+//                         .filter(ModrinthClient.ModFile::primary)
+//                         .findFirst()
+//                         .orElse(newVersionData.files().get(0));
+
+//                 String newHash = primaryFile.hashes().get("sha1");
+
+//                 // If the cryptographic hash is different, it is a guaranteed update
+//                 if (newHash != null && !oldHash.equals(newHash)) {
+//                     updates.add(new PendingUIUpdate(
+//                             newVersionData.project_id(),
+//                             oldFilename,
+//                             newVersionData.version_number(),
+//                             primaryFile.url(),
+//                             primaryFile.filename()
+//                     ));
+//                 }
 //             }
 //             return updates;
+            
 //         }).thenAccept(updates -> {
 //             Minecraft.getInstance().execute(() -> {
-//                 String btnText = updates.isEmpty() ? "No updates found." : "Download Selected Mods";
+//                 String btnText = updates.isEmpty() ? "All mods up to date!" : "Download Selected Mods";
 //                 String nextState = updates.isEmpty() ? "idle" : "ready";
 //                 Minecraft.getInstance().setScreen(buildScreen(parent, updates, nextState, btnText));
 //             });
@@ -131,7 +146,7 @@
 
 //     private static void downloadSelectedMods(Screen parent, List<PendingUIUpdate> availableUpdates) {
 //         List<PendingUIUpdate> toDownload = availableUpdates.stream()
-//                 .filter(u -> selectedMods.getOrDefault(u.modId(), false))
+//                 .filter(u -> selectedMods.getOrDefault(u.projectId(), false))
 //                 .toList();
 
 //         if (toDownload.isEmpty()) return;
@@ -141,13 +156,13 @@
 
 //         for (PendingUIUpdate update : toDownload) {
 //             DownloadManager.downloadMod(update.downloadUrl(), update.newFilename(), (percent, speedMBps) -> {
-//                 // Update the UI text dynamically on the main thread
 //                 Minecraft.getInstance().execute(() -> {
-//                     String progress = String.format("Downloading %s... %.0f%% (%.1f MB/s)", update.modId(), percent, speedMBps);
+//                     String progress = String.format("Downloading %s... %.0f%% (%.1f MB/s)", update.newFilename(), percent, speedMBps);
 //                     Minecraft.getInstance().setScreen(buildScreen(parent, availableUpdates, "downloading", progress));
 //                 });
 //             }).thenAccept(path -> {
-//                 StatusWriter.appendUpdate(update.modId() + "-" + update.oldVersion() + ".jar", update.newFilename());
+//                 // Pass the exact old filename to the JSON map
+//                 StatusWriter.appendUpdate(update.oldFilename(), update.newFilename());
                 
 //                 if (completedCount.incrementAndGet() >= total) {
 //                     Minecraft.getInstance().execute(() -> {
@@ -158,62 +173,77 @@
 //         }
 //     }
 
-//     // private static void applyAndRestart() {
-//     //     try {
-//     //         long pid = ProcessHandle.current().pid();
-//     //         String modsPath = FabricLoader.getInstance().getGameDir().resolve("mods").toString();
-
-//     //         // Run bootstrapper
-//     //         Runtime.getRuntime().exec(new String[]{
-//     //                 "java", "-jar", "mods/.pending_updates/updater.jar", String.valueOf(pid), modsPath
-//     //         });
-
-//     //         // Gracefully stop Minecraft
-//     //         Minecraft.getInstance().stop();
-//     //     } catch (Exception e) {
-//     //         e.printStackTrace();
-//     //     }
-//     // }
 //     private static void applyAndRestart() {
-//     try {
-//         Path pendingDir = DownloadManager.getPendingUpdatesDir();
-//         Path updaterPath = pendingDir.resolve("updater.jar");
+//         try {
+//             Path pendingDir = DownloadManager.getPendingUpdatesDir();
+//             Path updaterPath = pendingDir.resolve("updater.jar");
 
-//         // Extract the updater.jar from the mod's internal resources
-//         try (InputStream is = UpdateScreen.class.getResourceAsStream("/assets/modupdater/updater.jar")) {
-//             if (is != null) {
-//                 Files.copy(is, updaterPath, StandardCopyOption.REPLACE_EXISTING);
-//             } else {
-//                 System.err.println("Fatal: Could not find updater.jar in resources.");
-//                 return;
+//             // Extract the bootstrapper
+//             try (InputStream is = UpdateScreen.class.getResourceAsStream("/assets/modupdater/updater.jar")) {
+//                 if (is != null) Files.copy(is, updaterPath, StandardCopyOption.REPLACE_EXISTING);
+//                 else {
+//                     System.err.println("Fatal: Could not find updater.jar in resources.");
+//                     return;
+//                 }
+//             }
+
+//             long pid = ProcessHandle.current().pid();
+//             String modsPath = FabricLoader.getInstance().getGameDir().resolve("mods").toAbsolutePath().toString();
+
+//             // CROSS-PLATFORM FIX: 
+//             // Ask the OS for the exact absolute path of the Java binary currently running Minecraft.
+//             // If it can't find it (very rare), fallback to the standard "java" command.
+//             String javaBinaryPath = ProcessHandle.current()
+//                     .info()
+//                     .command()
+//                     .orElse("java");
+
+//             // Launch the bootstrapper using the isolated launcher's Java runtime
+//             Runtime.getRuntime().exec(new String[]{
+//                     javaBinaryPath, 
+//                     "-jar", 
+//                     updaterPath.toAbsolutePath().toString(), 
+//                     String.valueOf(pid), 
+//                     modsPath
+//             });
+
+//             Minecraft.getInstance().stop();
+//         } catch (Exception e) {
+//             e.printStackTrace();
+//         }
+//     }
+
+//     // High-speed SHA-1 hashing algorithm using an 8KB buffer
+//     private static String getFileHash(Path path) throws Exception {
+//         MessageDigest digest = MessageDigest.getInstance("SHA-1");
+//         try (InputStream is = Files.newInputStream(path)) {
+//             byte[] buffer = new byte[8192];
+//             int read;
+//             while ((read = is.read(buffer)) > 0) {
+//                 digest.update(buffer, 0, read);
 //             }
 //         }
-
-//         long pid = ProcessHandle.current().pid();
-//         String modsPath = FabricLoader.getInstance().getGameDir().resolve("mods").toAbsolutePath().toString();
-
-//         // Launch the extracted jar using absolute paths
-//         Runtime.getRuntime().exec(new String[]{
-//                 "java", "-jar", updaterPath.toAbsolutePath().toString(), String.valueOf(pid), modsPath
-//         });
-
-//         Minecraft.getInstance().stop();
-//     } catch (Exception e) {
-//         e.printStackTrace();
+//         StringBuilder hexString = new StringBuilder();
+//         for (byte b : digest.digest()) {
+//             hexString.append(String.format("%02x", b));
+//         }
+//         return hexString.toString();
 //     }
 // }
-// }
+
 
 
 package com.theexpert9.modupdater.gui;
 
 import com.theexpert9.modupdater.api.ModrinthClient;
+import com.theexpert9.modupdater.util.ConfigManager;
 import com.theexpert9.modupdater.util.DownloadManager;
 import com.theexpert9.modupdater.util.StatusWriter;
 import dev.isxander.yacl3.api.ButtonOption;
 import dev.isxander.yacl3.api.ConfigCategory;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.YetAnotherConfigLib;
+import dev.isxander.yacl3.api.controller.EnumControllerBuilder;
 import dev.isxander.yacl3.api.controller.TickBoxControllerBuilder;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
@@ -235,9 +265,7 @@ import java.util.stream.Stream;
 
 public class UpdateScreen {
 
-    // Notice we now track oldFilename directly for 100% accurate file swapping
     private record PendingUIUpdate(String projectId, String oldFilename, String newVersion, String downloadUrl, String newFilename) {}
-
     private static final Map<String, Boolean> selectedMods = new HashMap<>();
 
     public static Screen create(Screen parent) {
@@ -245,11 +273,11 @@ public class UpdateScreen {
     }
 
     private static Screen buildScreen(Screen parent, List<PendingUIUpdate> availableUpdates, String state, String statusText) {
-        ConfigCategory.Builder categoryBuilder = ConfigCategory.createBuilder()
-                .name(Component.literal("Available Updates"))
-                .tooltip(Component.literal("Check Modrinth for updates."));
+        // --- TAB 1: UPDATES ---
+        ConfigCategory.Builder updatesCategory = ConfigCategory.createBuilder()
+                .name(Component.literal("Updates"));
 
-        categoryBuilder.option(ButtonOption.createBuilder()
+        updatesCategory.option(ButtonOption.createBuilder()
                 .name(Component.literal(statusText))
                 .action((screen, buttonOption) -> {
                     if (state.equals("idle")) checkForUpdates(parent);
@@ -257,32 +285,103 @@ public class UpdateScreen {
                     else if (state.equals("done")) applyAndRestart();
                 }).build());
 
-        if (state.equals("ready") && !availableUpdates.isEmpty()) {
-            categoryBuilder.option(ButtonOption.createBuilder()
-                    .name(Component.literal("Select All / Deselect All"))
-                    .action((screen, buttonOption) -> {
-                        boolean anyFalse = selectedMods.containsValue(false);
-                        for (String key : selectedMods.keySet()) selectedMods.put(key, anyFalse);
-                        Minecraft.getInstance().setScreen(buildScreen(parent, availableUpdates, state, statusText));
-                    }).build());
-        }
-
         for (PendingUIUpdate update : availableUpdates) {
             selectedMods.putIfAbsent(update.projectId(), true);
-            categoryBuilder.option(Option.<Boolean>createBuilder()
+            updatesCategory.option(Option.<Boolean>createBuilder()
                     .name(Component.literal("📦 " + update.oldFilename() + " ➔ " + update.newFilename()))
                     .binding(true, () -> selectedMods.get(update.projectId()), val -> selectedMods.put(update.projectId(), val))
                     .controller(TickBoxControllerBuilder::create)
                     .build());
         }
 
+        // --- TAB 2: SETTINGS ---
+        ConfigCategory settingsCategory = ConfigCategory.createBuilder()
+                .name(Component.literal("Settings"))
+                .option(Option.<Boolean>createBuilder()
+                        .name(Component.literal("Enable Startup Notification"))
+                        .binding(true, () -> ConfigManager.getConfig().enableNotifications, val -> ConfigManager.getConfig().enableNotifications = val)
+                        .controller(TickBoxControllerBuilder::create)
+                        .build())
+                .option(Option.<ConfigManager.AutoCheckMode>createBuilder()
+                        .name(Component.literal("Auto Check Mode"))
+                        .binding(ConfigManager.AutoCheckMode.ALL, () -> ConfigManager.getConfig().autoCheckMode, val -> ConfigManager.getConfig().autoCheckMode = val)
+                        .controller(opt -> EnumControllerBuilder.create(opt).enumClass(ConfigManager.AutoCheckMode.class))
+                        .build())
+                .build();
+
+        // --- TAB 3: MONITORED MODS (For Manual Mode) ---
+        ConfigCategory.Builder monitoredMods = ConfigCategory.createBuilder()
+                .name(Component.literal("Monitored Mods"))
+                .tooltip(Component.literal("Select which mods to scan when Auto Check is set to MANUAL."));
+
+        try (Stream<Path> stream = Files.list(FabricLoader.getInstance().getGameDir().resolve("mods"))) {
+            stream.filter(path -> path.toString().endsWith(".jar")).forEach(path -> {
+                String filename = path.getFileName().toString();
+                if (!filename.startsWith("fabric-") && !filename.equals("updater.jar")) {
+                    monitoredMods.option(Option.<Boolean>createBuilder()
+                            .name(Component.literal(filename))
+                            .binding(false,
+                                    () -> ConfigManager.getConfig().selectedMods.contains(filename),
+                                    val -> {
+                                        if (val) ConfigManager.getConfig().selectedMods.add(filename);
+                                        else ConfigManager.getConfig().selectedMods.remove(filename);
+                                    })
+                            .controller(TickBoxControllerBuilder::create)
+                            .build());
+                }
+            });
+        } catch (Exception ignored) {}
+
         return YetAnotherConfigLib.createBuilder()
                 .title(Component.literal("Mod Updater"))
-                .category(categoryBuilder.build())
+                .category(updatesCategory.build())
+                .category(settingsCategory)
+                .category(monitoredMods.build())
+                .save(ConfigManager::save) // Saves settings to config file when UI closes
                 .build()
                 .generateScreen(parent);
     }
 
+    // --- The Silent Startup Checker ---
+    public static int getAvailableUpdateCountSilent() {
+        try {
+            Map<String, String> hashToFilename = new HashMap<>();
+            ConfigManager.ConfigData config = ConfigManager.getConfig();
+
+            try (Stream<Path> stream = Files.list(FabricLoader.getInstance().getGameDir().resolve("mods"))) {
+                stream.filter(path -> path.toString().endsWith(".jar")).forEach(path -> {
+                    String filename = path.getFileName().toString();
+                    if (!filename.startsWith("fabric-") && !filename.equals("updater.jar")) {
+                        // Strict filtering based on user config
+                        if (config.autoCheckMode == ConfigManager.AutoCheckMode.ALL || config.selectedMods.contains(filename)) {
+                            try { hashToFilename.put(getFileHash(path), filename); } catch (Exception ignored) {}
+                        }
+                    }
+                });
+            }
+
+            if (hashToFilename.isEmpty()) return 0;
+
+            Map<String, ModrinthClient.ModVersion> apiResponse = ModrinthClient.checkBulkUpdates(
+                    new ArrayList<>(hashToFilename.keySet()), "26.1.2"
+            ).join();
+
+            int count = 0;
+            for (Map.Entry<String, ModrinthClient.ModVersion> entry : apiResponse.entrySet()) {
+                String oldHash = entry.getKey();
+                List<ModrinthClient.ModFile> files = entry.getValue().files();
+                if (files == null || files.isEmpty()) continue;
+
+                ModrinthClient.ModFile primaryFile = files.stream().filter(ModrinthClient.ModFile::primary).findFirst().orElse(files.get(0));
+                String newHash = primaryFile.hashes().get("sha1");
+
+                if (newHash != null && !oldHash.equals(newHash)) count++;
+            }
+            return count;
+        } catch (Exception e) { return 0; }
+    }
+
+    // --- The Manual UI Checker ---
     private static void checkForUpdates(Screen parent) {
         selectedMods.clear();
         Minecraft.getInstance().setScreen(buildScreen(parent, new ArrayList<>(), "checking", "Checking hashes... Please Wait"));
@@ -290,31 +389,26 @@ public class UpdateScreen {
         CompletableFuture.supplyAsync(() -> {
             List<PendingUIUpdate> updates = new ArrayList<>();
             Map<String, String> hashToFilename = new HashMap<>();
-            Path modsDir = FabricLoader.getInstance().getGameDir().resolve("mods");
+            ConfigManager.ConfigData config = ConfigManager.getConfig();
 
-            // 1. Generate SHA-1 hashes for all local .jar files
-            try (Stream<Path> stream = Files.list(modsDir)) {
+            try (Stream<Path> stream = Files.list(FabricLoader.getInstance().getGameDir().resolve("mods"))) {
                 stream.filter(path -> path.toString().endsWith(".jar")).forEach(path -> {
-                    try {
-                        String filename = path.getFileName().toString();
-                        // Ignore the updater itself and fabric api fragments
-                        if (!filename.startsWith("fabric-") && !filename.equals("updater.jar")) {
-                            hashToFilename.put(getFileHash(path), filename);
+                    String filename = path.getFileName().toString();
+                    if (!filename.startsWith("fabric-") && !filename.equals("updater.jar")) {
+                        // Apply config filters to manual checks as well
+                        if (config.autoCheckMode == ConfigManager.AutoCheckMode.ALL || 
+                           (config.autoCheckMode == ConfigManager.AutoCheckMode.MANUAL && config.selectedMods.contains(filename)) ||
+                            config.autoCheckMode == ConfigManager.AutoCheckMode.NONE) { // If set to NONE, manual button checks everything
+                            try { hashToFilename.put(getFileHash(path), filename); } catch (Exception ignored) {}
                         }
-                    } catch (Exception ignored) {}
+                    }
                 });
-            } catch (Exception e) {
-                return updates;
-            }
+            } catch (Exception e) { return updates; }
 
             if (hashToFilename.isEmpty()) return updates;
 
-            // 2. Perform the 1-second bulk API query
-            Map<String, ModrinthClient.ModVersion> apiResponse = ModrinthClient.checkBulkUpdates(
-                    new ArrayList<>(hashToFilename.keySet()), "26.1.2"
-            ).join();
+            Map<String, ModrinthClient.ModVersion> apiResponse = ModrinthClient.checkBulkUpdates(new ArrayList<>(hashToFilename.keySet()), "26.1.2").join();
 
-            // 3. Process the response
             for (Map.Entry<String, ModrinthClient.ModVersion> entry : apiResponse.entrySet()) {
                 String oldHash = entry.getKey();
                 ModrinthClient.ModVersion newVersionData = entry.getValue();
@@ -322,101 +416,25 @@ public class UpdateScreen {
 
                 if (newVersionData.files() == null || newVersionData.files().isEmpty()) continue;
 
-                ModrinthClient.ModFile primaryFile = newVersionData.files().stream()
-                        .filter(ModrinthClient.ModFile::primary)
-                        .findFirst()
-                        .orElse(newVersionData.files().get(0));
-
+                ModrinthClient.ModFile primaryFile = newVersionData.files().stream().filter(ModrinthClient.ModFile::primary).findFirst().orElse(newVersionData.files().get(0));
                 String newHash = primaryFile.hashes().get("sha1");
 
-                // If the cryptographic hash is different, it is a guaranteed update
                 if (newHash != null && !oldHash.equals(newHash)) {
-                    updates.add(new PendingUIUpdate(
-                            newVersionData.project_id(),
-                            oldFilename,
-                            newVersionData.version_number(),
-                            primaryFile.url(),
-                            primaryFile.filename()
-                    ));
+                    updates.add(new PendingUIUpdate(newVersionData.project_id(), oldFilename, newVersionData.version_number(), primaryFile.url(), primaryFile.filename()));
                 }
             }
             return updates;
-            
         }).thenAccept(updates -> {
             Minecraft.getInstance().execute(() -> {
-                String btnText = updates.isEmpty() ? "All mods up to date!" : "Download Selected Mods";
+                String btnText = updates.isEmpty() ? "All monitored mods up to date!" : "Download Selected Mods";
                 String nextState = updates.isEmpty() ? "idle" : "ready";
                 Minecraft.getInstance().setScreen(buildScreen(parent, updates, nextState, btnText));
             });
         });
     }
 
-    private static void downloadSelectedMods(Screen parent, List<PendingUIUpdate> availableUpdates) {
-        List<PendingUIUpdate> toDownload = availableUpdates.stream()
-                .filter(u -> selectedMods.getOrDefault(u.projectId(), false))
-                .toList();
-
-        if (toDownload.isEmpty()) return;
-
-        AtomicInteger completedCount = new AtomicInteger(0);
-        int total = toDownload.size();
-
-        for (PendingUIUpdate update : toDownload) {
-            DownloadManager.downloadMod(update.downloadUrl(), update.newFilename(), (percent, speedMBps) -> {
-                Minecraft.getInstance().execute(() -> {
-                    String progress = String.format("Downloading %s... %.0f%% (%.1f MB/s)", update.newFilename(), percent, speedMBps);
-                    Minecraft.getInstance().setScreen(buildScreen(parent, availableUpdates, "downloading", progress));
-                });
-            }).thenAccept(path -> {
-                // Pass the exact old filename to the JSON map
-                StatusWriter.appendUpdate(update.oldFilename(), update.newFilename());
-                
-                if (completedCount.incrementAndGet() >= total) {
-                    Minecraft.getInstance().execute(() -> {
-                        Minecraft.getInstance().setScreen(buildScreen(parent, availableUpdates, "done", "Downloads Complete - RESTART GAME"));
-                    });
-                }
-            });
-        }
-    }
-
-    private static void applyAndRestart() {
-        try {
-            Path pendingDir = DownloadManager.getPendingUpdatesDir();
-            Path updaterPath = pendingDir.resolve("updater.jar");
-
-            try (InputStream is = UpdateScreen.class.getResourceAsStream("/assets/modupdater/updater.jar")) {
-                if (is != null) Files.copy(is, updaterPath, StandardCopyOption.REPLACE_EXISTING);
-                else return;
-            }
-
-            long pid = ProcessHandle.current().pid();
-            String modsPath = FabricLoader.getInstance().getGameDir().resolve("mods").toAbsolutePath().toString();
-
-            Runtime.getRuntime().exec(new String[]{
-                    "java", "-jar", updaterPath.toAbsolutePath().toString(), String.valueOf(pid), modsPath
-            });
-
-            Minecraft.getInstance().stop();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    // High-speed SHA-1 hashing algorithm using an 8KB buffer
-    private static String getFileHash(Path path) throws Exception {
-        MessageDigest digest = MessageDigest.getInstance("SHA-1");
-        try (InputStream is = Files.newInputStream(path)) {
-            byte[] buffer = new byte[8192];
-            int read;
-            while ((read = is.read(buffer)) > 0) {
-                digest.update(buffer, 0, read);
-            }
-        }
-        StringBuilder hexString = new StringBuilder();
-        for (byte b : digest.digest()) {
-            hexString.append(String.format("%02x", b));
-        }
-        return hexString.toString();
-    }
+    // Keep downloadSelectedMods, applyAndRestart, and getFileHash exactly the same as your current version!
+    private static void downloadSelectedMods(Screen parent, List<PendingUIUpdate> availableUpdates) { /* Keep Existing */ }
+    private static void applyAndRestart() { /* Keep Existing */ }
+    private static String getFileHash(Path path) throws Exception { /* Keep Existing */ return ""; } // Truncated for brevity
 }
