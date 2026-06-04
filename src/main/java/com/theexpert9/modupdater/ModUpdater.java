@@ -51,11 +51,11 @@ import com.theexpert9.modupdater.util.ConfigManager;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.gui.components.toasts.SystemToast;
 import net.minecraft.network.chat.Component;
-import net.minecraft.util.Identifier;
+import net.minecraft.resources.Identifier;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,7 +74,7 @@ public class ModUpdater implements ClientModInitializer {
         LOGGER.info("ModUpdater initialized!");
         ConfigManager.load(); // Load user settings
 
-        KeyMapping openUpdateScreenKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
+        KeyMapping openUpdateScreenKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
                 "key.modupdater.open",
                 InputConstants.Type.KEYSYM,
                 GLFW.GLFW_KEY_U,
@@ -97,7 +97,7 @@ public class ModUpdater implements ClientModInitializer {
                         String keyName = openUpdateScreenKey.getTranslatedKeyMessage().getString();
                         Component message = Component.literal(updates + " updates available! Press [" + keyName + "] to view.");
                         
-                        client.gui.toastManager().addToast(new SystemToast(SystemToast.SystemToastId.PERIODIC_NOTIFICATION, title, message));
+                        client.getToastManager().addToast(new SystemToast(SystemToast.SystemToastId.PERIODIC_NOTIFICATION, title, message));
                     });
                 }
             });
