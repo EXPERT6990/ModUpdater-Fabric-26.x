@@ -22,5 +22,6 @@
     "fabric-api": "*",
     "modmenu": "*",
     "yet_another_config_lib_v3": "*"
-  }
+  },
+  "mixins": ["modupdater.mixins.json"]
 }
