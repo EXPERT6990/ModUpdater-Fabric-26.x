@@ -30,7 +30,7 @@ public abstract class TitleScreenMixin extends Screen {
     private void onInit(CallbackInfo ci) {
         int buttonWidth = 20;
         int buttonHeight = 20;
-        int x = this.width / 2 + 104; 
+        int x = this.width / 2 + 104 * 2; 
         int y = this.height / 4 + 48 + 72 + 12;
 
         ImageButton updaterButton = new ImageButton(
