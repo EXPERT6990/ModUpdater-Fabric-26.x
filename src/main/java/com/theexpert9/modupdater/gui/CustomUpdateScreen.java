@@ -123,11 +123,11 @@ public class CustomUpdateScreen extends Screen {
         int panelWidth = this.width - 80;
         int panelHeight = this.height - 90;
         
-        // Fill the semi-transparent black panel
-        graphics.fill(panelX, panelY, panelX + panelWidth, panelY + panelHeight, 0x99000000);
+       // 3. Draw a custom title with a shadow
+        graphics.text(this.font, Component.literal("Available Updates"), panelX + 10, panelY + 10, 0xFFFFFFFF, true);
 
-        // Draw the title
-        graphics.text(this.font, Component.literal("Available Updates"), panelX + 10, panelY + 10, 0xFFFFFF, true);
+        // // 4. Placeholder text
+        // graphics.text(this.font, Component.literal("Sodium: 0.8.12 -> 0.8.19"), panelX + 10, panelY + 30, 0xFFAAAAAA, false);
 
         // Note: We don't need to manually tell the listWidget to render! 
         // Because we used addRenderableWidget() in init(), Minecraft draws the list over the panel automatically.
