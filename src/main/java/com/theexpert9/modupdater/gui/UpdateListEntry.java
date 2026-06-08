@@ -1,10 +1,78 @@
+// package com.theexpert9.modupdater.gui;
+
+// import net.minecraft.client.Minecraft;
+// import net.minecraft.client.gui.GuiGraphicsExtractor;
+// import net.minecraft.client.gui.components.ObjectSelectionList;
+// import net.minecraft.network.chat.Component;
+// import net.minecraft.client.input.MouseButtonEvent;
+
+// public class UpdateListEntry extends ObjectSelectionList.Entry<UpdateListEntry> {
+//     public final String projectId;
+//     public final String modName;
+//     public final String oldFilename;
+//     public final String newFilename;
+//     public final String downloadUrl;
+//     public final String updateText;
+    
+//     public boolean selected = true; // For the checkbox
+//     private final UpdateListWidget parent;
+
+//     public UpdateListEntry(UpdateListWidget parent, String projectId, String modName, String oldFilename, String newFilename, String downloadUrl, String oldVer, String newVer) {
+//         this.parent = parent;
+//         this.projectId = projectId;
+//         this.modName = modName;
+//         this.oldFilename = oldFilename;
+//         this.newFilename = newFilename;
+//         this.downloadUrl = downloadUrl;
+//         this.updateText = oldVer + " ➔ " + newVer;
+//     }
+
+//     @Override
+//     public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean isHovered, float partialTick) {
+//         int x = this.getX();
+//         int y = this.getY();
+
+//         // 1. Draw Custom Checkbox Background
+//         int checkboxX = x + 5;
+//         int checkboxY = y + 5;
+//         graphics.fill(checkboxX, checkboxY, checkboxX + 12, checkboxY + 12, 0xFF444444);
+
+//         // 2. Draw the "Checked" state 
+//         if (selected) {
+//             graphics.fill(checkboxX + 2, checkboxY + 2, checkboxX + 10, checkboxY + 10, 0xFF00FF00); 
+//         }
+
+//         // 3. Draw Mod Name and Version Text 
+//         Minecraft client = Minecraft.getInstance();
+//         graphics.text(client.font, Component.literal(this.modName), x + 25, y + 2, 0xFFFFFFFF, false);
+//         graphics.text(client.font, Component.literal(this.updateText), x + 25, y + 13, 0xFFAAAAAA, false);
+//     }
+
+//     @Override
+//     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+//         // Highlight this specific row for the Side Panel
+//         this.parent.setSelected(this);
+        
+//         // Use event.x() to get the mouse position and check if they clicked the checkbox
+//         if (event.x() - this.getX() < 20) {
+//             this.selected = !this.selected;
+//         }
+//         return true;
+//     }
+
+//     @Override
+//     public Component getNarration() {
+//         return Component.literal("Update available for " + this.modName);
+//     }
+// }
+
 package com.theexpert9.modupdater.gui;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.ObjectSelectionList;
-import net.minecraft.network.chat.Component;
 import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.network.chat.Component;
 
 public class UpdateListEntry extends ObjectSelectionList.Entry<UpdateListEntry> {
     public final String projectId;
@@ -12,9 +80,10 @@ public class UpdateListEntry extends ObjectSelectionList.Entry<UpdateListEntry> 
     public final String oldFilename;
     public final String newFilename;
     public final String downloadUrl;
-    public final String updateText;
+    public final String oldVer;
+    public final String newVer;
     
-    public boolean selected = true; // For the checkbox
+    public boolean selected = true; 
     private final UpdateListWidget parent;
 
     public UpdateListEntry(UpdateListWidget parent, String projectId, String modName, String oldFilename, String newFilename, String downloadUrl, String oldVer, String newVer) {
@@ -24,7 +93,8 @@ public class UpdateListEntry extends ObjectSelectionList.Entry<UpdateListEntry> 
         this.oldFilename = oldFilename;
         this.newFilename = newFilename;
         this.downloadUrl = downloadUrl;
-        this.updateText = oldVer + " ➔ " + newVer;
+        this.oldVer = oldVer;
+        this.newVer = newVer;
     }
 
     @Override
@@ -32,28 +102,32 @@ public class UpdateListEntry extends ObjectSelectionList.Entry<UpdateListEntry> 
         int x = this.getX();
         int y = this.getY();
 
-        // 1. Draw Custom Checkbox Background
+        // 1. Draw Upgraded Solid Checkbox with a Crisp Outer Border Accent
         int checkboxX = x + 5;
         int checkboxY = y + 5;
-        graphics.fill(checkboxX, checkboxY, checkboxX + 12, checkboxY + 12, 0xFF444444);
+        graphics.fill(checkboxX, checkboxY, checkboxX + 12, checkboxY + 12, 0xFF555555); // Outer border shell
+        graphics.fill(checkboxX + 1, checkboxY + 1, checkboxX + 11, checkboxY + 11, 0xFF1A1A1A); // Dark solid inner container
 
-        // 2. Draw the "Checked" state 
+        // 2. Draw the "Checked" inner solid core
         if (selected) {
-            graphics.fill(checkboxX + 2, checkboxY + 2, checkboxX + 10, checkboxY + 10, 0xFF00FF00); 
+            graphics.fill(checkboxX + 3, checkboxY + 3, checkboxX + 9, checkboxY + 9, 0xFF00FF00); // High-contrast solid green core
         }
 
-        // 3. Draw Mod Name and Version Text 
+        // 3. Draw Mod Name (Bold Bright White) and Version Transitions (Red -> Green)
         Minecraft client = Minecraft.getInstance();
-        graphics.text(client.font, Component.literal(this.modName), x + 25, y + 2, 0xFFFFFFFF, false);
-        graphics.text(client.font, Component.literal(this.updateText), x + 25, y + 13, 0xFFAAAAAA, false);
+        
+        // §f = White, §l = Bold
+        graphics.text(client.font, Component.literal("§f§l" + this.modName), x + 25, y + 2, 0xFFFFFFFF, false);
+        
+        // §c = Red, §f = White, §a = Green, §l = Bold
+        String versionFormatting = "§c§l" + this.oldVer + " §f§l➔ §a§l" + this.newVer;
+        graphics.text(client.font, Component.literal(versionFormatting), x + 25, y + 13, 0xFFFFFFFF, false);
     }
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        // Highlight this specific row for the Side Panel
         this.parent.setSelected(this);
         
-        // Use event.x() to get the mouse position and check if they clicked the checkbox
         if (event.x() - this.getX() < 20) {
             this.selected = !this.selected;
         }
