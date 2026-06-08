@@ -2,6 +2,7 @@ package com.theexpert9.modupdater.gui;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.ObjectSelectionList;
+import java.util.List;
 
 public class UpdateListWidget extends ObjectSelectionList<UpdateListEntry> {
     
@@ -9,12 +10,24 @@ public class UpdateListWidget extends ObjectSelectionList<UpdateListEntry> {
         super(client, width, height, y0, itemHeight);
     }
 
-    // A helper method so our screen can easily add updates to this list
-    public void addUpdate(String modName, String oldVer, String newVer) {
-        this.addEntry(new UpdateListEntry(this, modName, oldVer, newVer));
+    // The upgraded helper method that matches our new 11-parameter entry
+    public void addRealUpdate(String projectId, String modName, String author, String description, String changelog, String oldFile, String newFile, String url, String oldVer, String newVer) {
+        // Because we are inside the widget class, we are allowed to use the protected addEntry() method!
+        this.addEntry(new UpdateListEntry(this, projectId, modName, author, description, changelog, oldFile, newFile, url, oldVer, newVer));
     }
 
-    // Locks the scrollbar strictly to the right edge of our custom panel
+    // Helper for the Select All / None buttons
+    public void setAllSelected(boolean state) {
+        for (UpdateListEntry entry : this.children()) {
+            entry.selected = state;
+        }
+    }
+
+    // Gets only the mods that have a green checkmark
+    public List<UpdateListEntry> getCheckedEntries() {
+        return this.children().stream().filter(e -> e.selected).toList();
+    }
+
     @Override
     protected int scrollBarX() {
         return this.getX() + this.width - 6;
@@ -22,6 +35,6 @@ public class UpdateListWidget extends ObjectSelectionList<UpdateListEntry> {
 
     @Override
     public int getRowWidth() {
-        return this.width - 18; // Keep items from overlapping the scrollbar
+        return this.width - 18; 
     }
 }
