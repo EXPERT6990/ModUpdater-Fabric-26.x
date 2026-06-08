@@ -27,11 +27,10 @@ public class CustomUpdateScreen extends Screen {
     private final Screen parentScreen;
     private UpdateListWidget listWidget;
     
+    // UI State Management
     private boolean isScanning = true;
     private boolean isDownloading = false;
-    private boolean readyToApply = false;
     private String statusMessage = "Scanning hashes in background... Please wait.";
-    private Button applyButton;
 
     public CustomUpdateScreen(Screen parent) {
         super(Component.literal("Mod Updater"));
@@ -46,12 +45,15 @@ public class CustomUpdateScreen extends Screen {
         int panelY = 40;
         int panelWidth = this.width - 80;
         int panelHeight = this.height - 90;
+        
+        // The list now only takes up 60% of the panel width!
         int listWidth = (int) (panelWidth * 0.60);
 
         this.listWidget = new UpdateListWidget(this.minecraft, listWidth, panelHeight - 30, panelY + 25, 26);
         this.listWidget.setX(panelX);
         this.addRenderableWidget(this.listWidget);
 
+        // --- BUTTONS ---
         int buttonY = panelY + panelHeight + 5;
 
         this.addRenderableWidget(Button.builder(Component.literal("Back"), button -> {
@@ -60,30 +62,22 @@ public class CustomUpdateScreen extends Screen {
 
         this.addRenderableWidget(Button.builder(Component.literal("Select All"), button -> {
             this.listWidget.setAllSelected(true);
-        }).bounds(panelX, buttonY, 75, 20).build());
+        }).bounds(panelX, buttonY, 80, 20).build());
 
         this.addRenderableWidget(Button.builder(Component.literal("Deselect All"), button -> {
             this.listWidget.setAllSelected(false);
-        }).bounds(panelX + 80, buttonY, 80, 20).build());
+        }).bounds(panelX + 85, buttonY, 80, 20).build());
 
-        // Download Button
         this.addRenderableWidget(Button.builder(Component.literal("Download Selected"), button -> {
-            if (!this.isScanning && !this.isDownloading && !this.readyToApply) startDownload();
-        }).bounds(panelX + panelWidth - 235, buttonY, 120, 20).build());
+            if (!this.isScanning && !this.isDownloading) startDownload();
+        }).bounds(panelX + panelWidth - 130, buttonY, 130, 20).build());
 
-        // 1. Brand New Independent Manual Apply Changes Button
-        this.applyButton = Button.builder(Component.literal("Apply Changes"), button -> {
-            if (this.readyToApply) applyAndRestart();
-        }).bounds(panelX + panelWidth - 110, buttonY, 110, 20).build();
-        
-        this.applyButton.active = false; // Kept disabled until data downloads successfully
-        this.addRenderableWidget(this.applyButton);
-
+        // Automatically start the background scan!
         runBackendScan();
     }
 
+    // --- THE REAL BACKEND API LOGIC ---
     private void runBackendScan() {
-        // (Unchanged Hash Scanning and Bulk API lookup logic stays completely intact)
         CompletableFuture.runAsync(() -> {
             Map<String, String> hashToFilename = new HashMap<>();
             ConfigManager.ConfigData config = ConfigManager.getConfig();
@@ -120,11 +114,8 @@ public class CustomUpdateScreen extends Screen {
 
                     if (newHash != null && !oldHash.equals(newHash)) {
                         count++;
-                        // Splitting and cleaning up versions into simple parameters
-                        String cleanOldVer = "v1.0.0"; 
-                        String cleanNewVer = newVer.version_number();
-                        
-                        this.listWidget.addRealUpdate(newVer.project_id(), oldFilename.replace(".jar", ""), oldFilename, primaryFile.filename(), primaryFile.url(), cleanOldVer, cleanNewVer);
+                        // We use the old filename as the Mod Name for now until we pull descriptions next phase
+                        this.listWidget.addRealUpdate(newVer.project_id(), oldFilename.replace(".jar", ""), oldFilename, primaryFile.filename(), primaryFile.url(), "Old", newVer.version_number());
                     }
                 }
                 updateStatus(count == 0 ? "All mods up to date!" : "Found " + count + " available updates.");
@@ -147,10 +138,10 @@ public class CustomUpdateScreen extends Screen {
                 StatusWriter.appendUpdate(update.oldFilename, update.newFilename);
                 if (completedCount.incrementAndGet() >= total) {
                     this.minecraft.execute(() -> {
-                        this.isDownloading = false;
-                        this.readyToApply = true;
-                        this.applyButton.active = true; // Activating button now!
-                        updateStatus("Downloads Complete! Click 'Apply Changes' to complete installation.");
+                        updateStatus("Downloads Complete! Game will restart in 3 seconds...");
+                        CompletableFuture.runAsync(() -> {
+                            try { Thread.sleep(3000); applyAndRestart(); } catch (Exception ignored) {}
+                        });
                     });
                 }
             });
@@ -161,7 +152,7 @@ public class CustomUpdateScreen extends Screen {
         try {
             Path pendingDir = DownloadManager.getPendingUpdatesDir();
             Path updaterPath = pendingDir.resolve("updater.jar");
-            try (InputStream is = CustomUpdateScreen.class.getResourceAsStream("/assets/modupdater/updater.jar")) {
+            try (InputStream is = UpdateScreen.class.getResourceAsStream("/assets/modupdater/updater.jar")) {
                 if (is != null) Files.copy(is, updaterPath, StandardCopyOption.REPLACE_EXISTING);
                 else return;
             }
@@ -203,20 +194,28 @@ public class CustomUpdateScreen extends Screen {
         int panelWidth = this.width - 80;
         int panelHeight = this.height - 90;
         int listWidth = (int) (panelWidth * 0.60);
+        
         int sidePanelX = panelX + listWidth;
 
+        // Background Panel
         graphics.fill(panelX, panelY, panelX + panelWidth, panelY + panelHeight, 0x99000000);
+
+        // UI Division Line between List and Side Panel
         graphics.fill(sidePanelX, panelY, sidePanelX + 1, panelY + panelHeight, 0x55FFFFFF);
 
+        // Header and Live Status Message
         graphics.text(this.font, Component.literal("Mod Updater"), panelX + 10, panelY + 10, 0xFFFFFFFF, true);
-        graphics.text(this.font, Component.literal(this.statusMessage), panelX + 100, panelY + 10, 0xFFFFAA00, false);
+        graphics.text(this.font, Component.literal(this.statusMessage), panelX + 100, panelY + 10, 0xFFFFAA00, false); // Gold text
 
+        // --- SIDE PANEL RENDERING ---
         UpdateListEntry viewedEntry = this.listWidget.getSelected();
+        
         if (viewedEntry != null) {
             graphics.text(this.font, Component.literal("Selected Mod Details"), sidePanelX + 10, panelY + 10, 0xFFFFAA00, false);
-            graphics.text(this.font, Component.literal("§f§l" + viewedEntry.modName), sidePanelX + 10, panelY + 30, 0xFFFFFFFF, false);
+            graphics.text(this.font, Component.literal(viewedEntry.modName), sidePanelX + 10, panelY + 30, 0xFFFFFFFF, false);
             graphics.text(this.font, Component.literal("File: " + viewedEntry.newFilename), sidePanelX + 10, panelY + 45, 0xFFAAAAAA, false);
             
+            // Placeholders for the next phase!
             graphics.text(this.font, Component.literal("[ Mod Icon Area ]"), sidePanelX + 10, panelY + 80, 0xFF555555, false);
             graphics.text(this.font, Component.literal("Changelog data coming soon..."), sidePanelX + 10, panelY + 100, 0xFF555555, false);
         } else {

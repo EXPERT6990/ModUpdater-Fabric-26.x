@@ -10,11 +10,8 @@ public class UpdateListWidget extends ObjectSelectionList<UpdateListEntry> {
         super(client, width, height, y0, itemHeight);
     }
 
-    // The upgraded helper method that matches our new 11-parameter entry
-    // The upgraded helper method that matches our new 11-parameter entry
-    public void addRealUpdate(String projectId, String modName, String author, String description, String changelog, String oldFile, String newFile, String url, String oldVer, String newVer) {
-        // Because we are inside the widget class, we are allowed to use the protected addEntry() method!
-        this.addEntry(new UpdateListEntry(this, projectId, modName, author, description, changelog, oldFile, newFile, url, oldVer, newVer));
+    public void addRealUpdate(String projectId, String modName, String oldFile, String newFile, String url, String oldVer, String newVer) {
+        this.addEntry(new UpdateListEntry(this, projectId, modName, oldFile, newFile, url, oldVer, newVer));
     }
 
     // Helper for the Select All / None buttons
