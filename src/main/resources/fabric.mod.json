@@ -6,7 +6,7 @@
   "description": "Automatically checks, downloads, and applies mod updates from Modrinth.",
   "authors": ["TheExpert9"],
   "contact": {
-    "repo": "https://github.com/TheExpert9/ModUpdater"
+    "repo": "https://github.com/EXPERT6990/ModUpdater-Fabric-26.x"
   },
   "license": "MIT",
   "icon": "assets/modupdater/icon.png",
