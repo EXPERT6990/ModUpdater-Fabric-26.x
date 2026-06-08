@@ -15,20 +15,14 @@ public class ModrinthClient {
     private static final HttpClient HTTP_CLIENT = HttpClient.newHttpClient();
     private static final Gson GSON = new Gson();
 
-    // // --- DATA RECORDS ---
-    // public record ModFile(String url, String filename, boolean primary, Map<String, String> hashes) {}
-    
     // --- DATA RECORDS ---
     public record ModFile(String url, String filename, boolean primary, Map<String, String> hashes) {}
     
-    // Added 'changelog' to the record!
-    public record ModVersion(String id, String project_id, String version_number, String changelog, List<ModFile> files, List<ModDependency> dependencies) {}
-
     // Restored ModDependency for the DependencyResolver
     public record ModDependency(String project_id, String version_id, String dependency_type) {}
     
     // Updated to include the dependencies list again
-    //public record ModVersion(String id, String project_id, String version_number, List<ModFile> files, List<ModDependency> dependencies) {}
+    public record ModVersion(String id, String project_id, String version_number, List<ModFile> files, List<ModDependency> dependencies) {}
     
     // Data record for formatting the bulk POST request
     public record UpdateRequestBody(List<String> hashes, String algorithm, List<String> loaders, List<String> game_versions) {}
