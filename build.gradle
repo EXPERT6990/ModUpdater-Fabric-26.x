@@ -59,8 +59,9 @@ dependencies {
     implementation "com.terraformersmc:modmenu:${project.modmenu_version}"
 
     // YACL Integration via Maven
-    //implementation "dev.isxander:yet_another_config_lib_v3:${project.yacl_version}-fabric"
-    implementation name: 'yacl-3.9.3'
+   // implementation name: 'yacl-3.9.3'
+    implementation "dev.isxander.yacl:yet-another-config-lib-fabric:${project.yacl_version}"
+
 }
 
 processResources {
