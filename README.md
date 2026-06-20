@@ -43,4 +43,10 @@ _Note: The Gradle script will automatically compile and embed the `updater.jar` 
 
 ## 📝 License
 
-This project is licensed under the MIT License.
+This project is licensed under the ARR License.
+
+
+## ❗ Important:
+
+Do not copy / modify or redistribute this code without permission. It's strictly prohibited.
+_"A hard work should never be disrespected."_
