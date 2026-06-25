@@ -10,9 +10,6 @@ public class UpdateListWidget extends ObjectSelectionList<UpdateListEntry> {
         super(client, width, height, y0, itemHeight);
     }
 
-    // public void addRealUpdate(String projectId, String modName, String oldFile, String newFile, String url, String oldVer, String newVer) {
-    //     this.addEntry(new UpdateListEntry(this, projectId, modName, oldFile, newFile, url, oldVer, newVer));
-    // }
     public void addRealUpdate(String projectId, String modName, /*String author, String description, String changelog, */ String oldFile, String newFile, String url, String oldVer, String newVer, boolean isDownloaded) {
         UpdateListEntry entry = new UpdateListEntry(this, projectId, modName,/*  author, description, changelog,*/ oldFile, newFile, url, oldVer, newVer);
         entry.isDownloaded = isDownloaded;

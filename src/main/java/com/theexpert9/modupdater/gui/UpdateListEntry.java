@@ -37,17 +37,6 @@ public class UpdateListEntry extends ObjectSelectionList.Entry<UpdateListEntry> 
         int x = this.getX();
         int y = this.getY();
 
-        // 1. Draw Upgraded Solid Checkbox with a Crisp Outer Border Accent
-        // int checkboxX = x + 5;
-        // int checkboxY = y + 5;
-        // graphics.fill(checkboxX, checkboxY, checkboxX + 12, checkboxY + 12, 0xFF555555); // Outer border shell
-        // graphics.fill(checkboxX + 1, checkboxY + 1, checkboxX + 11, checkboxY + 11, 0xFF1A1A1A); // Dark solid inner container
-
-        // // 2. Draw the "Checked" inner solid core
-        // if (selected) {
-        //     graphics.fill(checkboxX + 3, checkboxY + 3, checkboxX + 9, checkboxY + 9, 0xFF00FF00); // High-contrast solid green core
-        // }
-
         // 3. Draw Checkbox OR Downloaded Status
         int checkboxX = x + this.parent.getRowWidth() - 20;
         int checkboxY = y + 5;

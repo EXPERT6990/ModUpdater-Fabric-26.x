@@ -72,14 +72,6 @@ public class CustomUpdateScreen extends Screen {
             if (!this.isScanning && !this.isDownloading ) startDownload();
         }).bounds(panelX + panelWidth - 235, buttonY, 120, 20).build());
 
-        // // 1. Brand New Independent Manual Apply Changes Button
-        // this.applyButton = Button.builder(Component.literal("Apply Changes"), button -> {
-        //     if (this.readyToApply) applyAndRestart();
-        // }).bounds(panelX + panelWidth - 110, buttonY, 110, 20).build();
-        
-        // this.applyButton.active = false; // Kept disabled until data downloads successfully
-        // this.addRenderableWidget(this.applyButton);
-
         // Inside init(): Look for waiting files immediately!
         List<String> pendingFiles = getPendingDownloadedFiles();
         if (!pendingFiles.isEmpty()) {
@@ -143,7 +135,6 @@ public class CustomUpdateScreen extends Screen {
                         String cleanOldVer = "Old"; 
                         String cleanNewVer = newVer.version_number();
                         
-                        // this.listWidget.addRealUpdate(newVer.project_id(), oldFilename.replace(".jar", ""), oldFilename, primaryFile.filename(), primaryFile.url(), cleanOldVer, cleanNewVer);
                         // Check if this EXACT new file is already sitting in the pending folder
                         boolean alreadyDownloaded = getPendingDownloadedFiles().contains(primaryFile.filename());
 
