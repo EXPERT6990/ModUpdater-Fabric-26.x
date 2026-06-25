@@ -66,15 +66,6 @@ public class UpdateListEntry extends ObjectSelectionList.Entry<UpdateListEntry> 
         graphics.text(client.font, Component.literal(versionFormatting), x + 25, y + 13, 0xFFFFFFFF, false);
     }
 
-    // @Override
-    // public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-    //     this.parent.setSelected(this);
-        
-    //     if (event.x() - this.getX() < 20) {
-    //         this.selected = !this.selected;
-    //     }
-    //     return true;
-    // }
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {

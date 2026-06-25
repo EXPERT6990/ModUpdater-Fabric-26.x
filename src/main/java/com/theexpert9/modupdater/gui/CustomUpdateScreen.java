@@ -1,10 +1,13 @@
 
 package com.theexpert9.modupdater.gui;
 
-import com.theexpert9.modupdater.api.ModrinthClient;
+//import com.theexpert9.modupdater.api.ModrinthClient;
 import com.theexpert9.modupdater.util.ConfigManager;
 import com.theexpert9.modupdater.util.DownloadManager;
 import com.theexpert9.modupdater.util.StatusWriter;
+
+import com.theexpert9.modupdater.util.UpdateManager;
+
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
@@ -31,13 +34,67 @@ public class CustomUpdateScreen extends Screen {
     private boolean isScanning = true;
     private boolean isDownloading = false;
     private boolean readyToApply = false;
-    private String statusMessage = "Scanning hashes in background... Please wait.";
+    private String statusMessage = "Loading UI...";
     private Button applyButton;
 
     public CustomUpdateScreen(Screen parent) {
         super(Component.literal("Mod Updater"));
         this.parentScreen = parent;
     }
+
+    // @Override
+    // protected void init() {
+    //     super.init();
+
+    //     int panelX = 40;
+    //     int panelY = 40;
+    //     int panelWidth = this.width - 80;
+    //     int panelHeight = this.height - 90;
+    //     int listWidth = (int) (panelWidth * 0.60);
+
+    //     this.listWidget = new UpdateListWidget(this.minecraft, listWidth, panelHeight - 30, panelY + 25, 26);
+    //     this.listWidget.setX(panelX);
+    //     this.addRenderableWidget(this.listWidget);
+
+    //     int buttonY = panelY + panelHeight + 5;
+
+    //     this.addRenderableWidget(Button.builder(Component.literal("Back"), button -> {
+    //         if (this.minecraft != null) this.minecraft.setScreen(this.parentScreen);
+    //     }).bounds(10, 10, 50, 20).build());
+
+    //     this.addRenderableWidget(Button.builder(Component.literal("Select All"), button -> {
+    //         this.listWidget.setAllSelected(true);
+    //     }).bounds(panelX, buttonY, 75, 20).build());
+
+    //     this.addRenderableWidget(Button.builder(Component.literal("Deselect All"), button -> {
+    //         this.listWidget.setAllSelected(false);
+    //     }).bounds(panelX + 80, buttonY, 80, 20).build());
+
+    //     // Download Button
+    //     this.addRenderableWidget(Button.builder(Component.literal("Download Selected"), button -> {
+    //         if (!this.isScanning && !this.isDownloading ) startDownload();
+    //     }).bounds(panelX + panelWidth - 235, buttonY, 120, 20).build());
+
+    //     // Inside init(): Look for waiting files immediately!
+    //     List<String> pendingFiles = getPendingDownloadedFiles();
+    //     if (!pendingFiles.isEmpty()) {
+    //         this.readyToApply = true;
+    //     }
+
+    //     this.applyButton = Button.builder(Component.literal("Apply Changes"), button -> {
+    //         if (this.readyToApply) {
+    //             // Open the new Confirm Screen instead of instantly restarting!
+    //             if (this.minecraft != null) {
+    //                 this.minecraft.setScreen(new ConfirmApplyScreen(this, getPendingDownloadedFiles(), this::applyAndRestart));
+    //             }
+    //         }
+    //     }).bounds(panelX + panelWidth - 110, buttonY, 110, 20).build();
+        
+    //     this.applyButton.active = this.readyToApply; 
+    //     this.addRenderableWidget(this.applyButton);
+
+    //     runBackendScan();
+    // }
 
     @Override
     protected void init() {
@@ -49,15 +106,53 @@ public class CustomUpdateScreen extends Screen {
         int panelHeight = this.height - 90;
         int listWidth = (int) (panelWidth * 0.60);
 
-        this.listWidget = new UpdateListWidget(this.minecraft, listWidth, panelHeight - 30, panelY + 25, 26);
+        this.listWidget = new UpdateListWidget(this.minecraft, listWidth, panelHeight - 30, panelY + 25, 28);
         this.listWidget.setX(panelX);
         this.addRenderableWidget(this.listWidget);
 
         int buttonY = panelY + panelHeight + 5;
 
+        // 1. Check for previously downloaded mods (State Persistence)
+        List<String> pendingFiles = getPendingDownloadedFiles();
+        if (!pendingFiles.isEmpty()) this.readyToApply = true;
+
+        // --- BUTTONS ---
         this.addRenderableWidget(Button.builder(Component.literal("Back"), button -> {
             if (this.minecraft != null) this.minecraft.setScreen(this.parentScreen);
         }).bounds(10, 10, 50, 20).build());
+
+        // // BRAND NEW: The Manual Refresh Button
+        // this.addRenderableWidget(Button.builder(Component.literal("Refresh"), button -> {
+        //     if (!this.isDownloading) {
+        //         this.statusMessage = "Refreshing updates from Modrinth...";
+        //         this.listWidget.children().clear(); // Clear the screen
+                
+        //         // Ask the Manager to scan, and when it finishes, reload the UI!
+        //         UpdateManager.forceRefresh().thenRun(() -> {
+        //             if (this.minecraft != null) this.minecraft.execute(this::loadUpdatesFromCache);
+        //         });
+        //     }
+        // }).bounds(panelX, panelY - 25, 75, 20).build()); // Placed neatly above the list
+
+        this.addRenderableWidget(Button.builder(Component.literal("Refresh"), button -> {
+            if (!this.isDownloading) {
+                this.statusMessage = "Refreshing updates from Modrinth...";
+                this.listWidget.clearUpdates(); 
+                
+                // Guarantee the UI thread picks up the result, even if it fails!
+                UpdateManager.forceRefresh().whenComplete((result, error) -> {
+                    if (this.minecraft != null) {
+                        this.minecraft.execute(() -> {
+                            if (error != null) {
+                                this.statusMessage = "§cRefresh failed. Check console.";
+                            } else {
+                                loadUpdatesFromCache();
+                            }
+                        });
+                    }
+                });
+            }
+        }).bounds(panelX + panelWidth - 75, panelY - 25, 75, 20).build());
 
         this.addRenderableWidget(Button.builder(Component.literal("Select All"), button -> {
             this.listWidget.setAllSelected(true);
@@ -67,32 +162,71 @@ public class CustomUpdateScreen extends Screen {
             this.listWidget.setAllSelected(false);
         }).bounds(panelX + 80, buttonY, 80, 20).build());
 
-        // Download Button
         this.addRenderableWidget(Button.builder(Component.literal("Download Selected"), button -> {
-            if (!this.isScanning && !this.isDownloading ) startDownload();
+            if (!this.isDownloading) startDownload();
         }).bounds(panelX + panelWidth - 235, buttonY, 120, 20).build());
 
-        // Inside init(): Look for waiting files immediately!
-        List<String> pendingFiles = getPendingDownloadedFiles();
-        if (!pendingFiles.isEmpty()) {
-            this.readyToApply = true;
-        }
-
         this.applyButton = Button.builder(Component.literal("Apply Changes"), button -> {
-            if (this.readyToApply) {
-                // Open the new Confirm Screen instead of instantly restarting!
-                if (this.minecraft != null) {
-                    this.minecraft.setScreen(new ConfirmApplyScreen(this, getPendingDownloadedFiles(), this::applyAndRestart));
-                }
+            if (this.readyToApply && this.minecraft != null) {
+                this.minecraft.setScreen(new ConfirmApplyScreen(this, getPendingDownloadedFiles(), this::applyAndRestart));
             }
         }).bounds(panelX + panelWidth - 110, buttonY, 110, 20).build();
         
         this.applyButton.active = this.readyToApply; 
         this.addRenderableWidget(this.applyButton);
 
-        runBackendScan();
+        // 2. Instead of scanning, instantly load what is already in memory!
+        loadUpdatesFromCache();
     }
 
+    // --- INSTANT CACHE LOADER (Bulletproof Version) ---
+    private void loadUpdatesFromCache() {
+        // this.listWidget.children().clear();
+        this.listWidget.clearUpdates();
+
+        if (UpdateManager.AVAILABLE_UPDATES.isEmpty()) {
+            this.statusMessage = UpdateManager.currentStatus; 
+            return;
+        }
+
+        List<String> pendingFiles = getPendingDownloadedFiles();
+        int count = 0;
+
+        for (UpdateManager.CachedUpdate cache : UpdateManager.AVAILABLE_UPDATES.values()) {
+            try {
+                var meta = cache.localMod().getMetadata();
+                String realName = meta.getName() != null ? meta.getName() : "Unknown Mod";
+
+                // Safety: Null check the versions before splitting
+                String cleanOldVer = meta.getVersion() != null ? meta.getVersion().getFriendlyString().split("\\+")[0] : "v?";
+                String cleanNewVer = cache.newVersion().version_number() != null ? cache.newVersion().version_number().split("\\+")[0] : "v?";
+
+                String oldFilename = "unknown.jar";
+                // Safety: Only try to read paths if it's an actual physical file
+                if (cache.localMod().getOrigin().getKind() == net.fabricmc.loader.api.metadata.ModOrigin.Kind.PATH) {
+                    for (Path p : cache.localMod().getOrigin().getPaths()) {
+                        if (p != null && p.getFileName() != null && p.getFileName().toString().endsWith(".jar")) {
+                            oldFilename = p.getFileName().toString();
+                        }
+                    }
+                }
+
+                boolean alreadyDownloaded = pendingFiles.contains(cache.primaryFilename());
+
+                this.listWidget.addRealUpdate(cache.newVersion().project_id(), realName, oldFilename, cache.primaryFilename(), cache.downloadUrl(), cleanOldVer, cleanNewVer, alreadyDownloaded);
+                count++;
+                
+            } catch (Exception e) {
+                // If ONE mod breaks, catch it so the other 24 still load!
+                System.err.println("Failed to render update for: " + cache.localMod().getMetadata().getId());
+                e.printStackTrace(); 
+            }
+        }
+
+        this.statusMessage = "Displaying " + count + " available updates.";
+    }
+
+    /*
     private void runBackendScan() {
         // (Unchanged Hash Scanning and Bulk API lookup logic stays completely intact)
         CompletableFuture.runAsync(() -> {
@@ -139,13 +273,14 @@ public class CustomUpdateScreen extends Screen {
                         boolean alreadyDownloaded = getPendingDownloadedFiles().contains(primaryFile.filename());
 
                         // Pass the boolean as the final parameter!
-                        this.listWidget.addRealUpdate(newVer.project_id(), oldFilename.replace(".jar", ""),/*  realName, author, desc, changelog, */oldFilename, primaryFile.filename(), primaryFile.url(), cleanOldVer, cleanNewVer, alreadyDownloaded);
+                        this.listWidget.addRealUpdate(newVer.project_id(), oldFilename.replace(".jar", ""),/*  realName, author, desc, changelog, *\/oldFilename, primaryFile.filename(), primaryFile.url(), cleanOldVer, cleanNewVer, alreadyDownloaded);
                     }
                 }
                 updateStatus(count == 0 ? "All mods up to date!" : "Found " + count + " available updates.");
             });
         });
     }
+    */
 
     private void startDownload() {
         List<UpdateListEntry> toDownload = this.listWidget.getCheckedEntries();
@@ -197,6 +332,8 @@ public class CustomUpdateScreen extends Screen {
         }
     }
 
+
+    /*
     private String getFileHash(Path path) throws Exception {
         MessageDigest digest = MessageDigest.getInstance("SHA-1");
         try (InputStream is = Files.newInputStream(path)) {
@@ -207,7 +344,7 @@ public class CustomUpdateScreen extends Screen {
         StringBuilder hexString = new StringBuilder();
         for (byte b : digest.digest()) hexString.append(String.format("%02x", b & 0xFF));
         return hexString.toString();
-    }
+    } */
 
     // Helper to see exactly what is waiting in the pending folder
     private List<String> getPendingDownloadedFiles() {
@@ -239,11 +376,17 @@ public class CustomUpdateScreen extends Screen {
         int listWidth = (int) (panelWidth * 0.60);
         int sidePanelX = panelX + listWidth;
 
+
+
+        // Live status updating! If the manager is scanning, show its live status. Otherwise, show our local message.
+        String displayStatus = UpdateManager.AVAILABLE_UPDATES.isEmpty() ? UpdateManager.currentStatus : this.statusMessage;
+        graphics.text(this.font, Component.literal(displayStatus), panelX + 100, panelY + 10, 0xFFFFAA00, false);
+
         graphics.fill(panelX, panelY, panelX + panelWidth, panelY + panelHeight, 0x99000000);
         graphics.fill(sidePanelX, panelY, sidePanelX + 1, panelY + panelHeight, 0x55FFFFFF);
 
         graphics.text(this.font, Component.literal("Mod Updater"), panelX + 10, panelY + 10, 0xFFFFFFFF, true);
-        graphics.text(this.font, Component.literal(this.statusMessage), panelX + 100, panelY + 10, 0xFFFFAA00, false);
+        //graphics.text(this.font, Component.literal(this.statusMessage), panelX + 100, panelY + 10, 0xFFFFAA00, false);
 
         UpdateListEntry viewedEntry = this.listWidget.getSelected();
         if (viewedEntry != null) {

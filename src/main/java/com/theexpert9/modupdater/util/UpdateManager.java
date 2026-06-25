@@ -20,8 +20,8 @@ public class UpdateManager {
     
     // 2. Threading & Timers
     private static final ScheduledExecutorService SCHEDULER = Executors.newSingleThreadScheduledExecutor();
-    private static boolean isScanning = false;
-    public static String currentStatus = "Waiting to scan...";
+    private static volatile boolean isScanning = false;
+    public static volatile String currentStatus = "Waiting to scan...";
 
     // A simple record to hold everything the UI needs instantly
     public record CachedUpdate(ModContainer localMod, ModrinthClient.ModVersion newVersion, String primaryFilename, String downloadUrl) {}
@@ -52,6 +52,12 @@ public class UpdateManager {
                 String id = mod.getMetadata().getId();
                 if (id.equals("fabricloader") || id.equals("java") || id.equals("minecraft")) continue;
 
+                // --- NEW FIX: Skip embedded "Nested" library mods! ---
+                if (mod.getOrigin().getKind() != net.fabricmc.loader.api.metadata.ModOrigin.Kind.PATH) {
+                    continue; 
+                }
+                // -----------------------------------------------------
+
                 for (Path path : mod.getOrigin().getPaths()) {
                     if (path.toString().endsWith(".jar") && !path.getFileName().toString().equals("updater.jar")) {
                         try {
@@ -73,20 +79,32 @@ public class UpdateManager {
             // 2. The Batching Engine (Rate Limit Protection)
             String mcVersion = FabricLoader.getInstance().getModContainer("minecraft")
                     .map(c -> c.getMetadata().getVersion().getFriendlyString())
-                    .orElse("1.21");
+                    .orElse("26.1"); // Default to 1.26.1 if not found
 
             List<String> allHashes = new ArrayList<>(hashToMod.keySet());
             int batchSize = 50; // Check 50 mods at a time
             Map<String, ModrinthClient.ModVersion> allApiResults = new HashMap<>();
 
+            // for (int i = 0; i < allHashes.size(); i += batchSize) {
+            //     List<String> batch = allHashes.subList(i, Math.min(i + batchSize, allHashes.size()));
+            //     updateStatus("Checking updates (Batch " + ((i / batchSize) + 1) + ")...");
+                
+            //     Map<String, ModrinthClient.ModVersion> batchResult = ModrinthClient.checkBulkUpdates(batch, mcVersion).join();
+            //     if (batchResult != null) allApiResults.putAll(batchResult);
+
+            //     // Polite pause between batches to prevent Modrinth IP bans
+            //     if (i + batchSize < allHashes.size()) Thread.sleep(600); 
+            // }
+
             for (int i = 0; i < allHashes.size(); i += batchSize) {
-                List<String> batch = allHashes.subList(i, Math.min(i + batchSize, allHashes.size()));
+                // WRAPPED IN 'new ArrayList<>()' TO PREVENT THE JSON CRASH!
+                List<String> batch = new ArrayList<>(allHashes.subList(i, Math.min(i + batchSize, allHashes.size())));
+                
                 updateStatus("Checking updates (Batch " + ((i / batchSize) + 1) + ")...");
                 
                 Map<String, ModrinthClient.ModVersion> batchResult = ModrinthClient.checkBulkUpdates(batch, mcVersion).join();
                 if (batchResult != null) allApiResults.putAll(batchResult);
 
-                // Polite pause between batches to prevent Modrinth IP bans
                 if (i + batchSize < allHashes.size()) Thread.sleep(600); 
             }
 
@@ -114,7 +132,21 @@ public class UpdateManager {
 
             updateStatus("Found " + AVAILABLE_UPDATES.size() + " updates.");
 
-            // TODO (Optional): Send a push notification/Toast to the player here if updates > 0 and isManual == false
+            // Done ** TODO (Optional): Send a push notification/Toast to the player here if updates > 0 and isManual == false
+            // Trigger a Minecraft Toast Notification if we found updates during a background scan!
+            if (!isManual && !AVAILABLE_UPDATES.isEmpty()) {
+                net.minecraft.client.Minecraft client = net.minecraft.client.Minecraft.getInstance();
+                if (client != null) {
+                    client.execute(() -> {
+                        net.minecraft.client.gui.components.toasts.SystemToast.add(
+                                client.getToastManager(),
+                                net.minecraft.client.gui.components.toasts.SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
+                                net.minecraft.network.chat.Component.literal("Mod Updates Available"),
+                                net.minecraft.network.chat.Component.literal("Found " + AVAILABLE_UPDATES.size() + " updates to install!")
+                        );
+                    });
+                }
+            }
 
         } catch (Exception e) {
             e.printStackTrace();

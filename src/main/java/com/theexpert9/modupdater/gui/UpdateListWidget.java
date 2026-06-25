@@ -10,7 +10,7 @@ public class UpdateListWidget extends ObjectSelectionList<UpdateListEntry> {
         super(client, width, height, y0, itemHeight);
     }
 
-    public void addRealUpdate(String projectId, String modName, /*String author, String description, String changelog, */ String oldFile, String newFile, String url, String oldVer, String newVer, boolean isDownloaded) {
+    public void addRealUpdate(String projectId, String modName, /*String author, String description, String changelog,*/ String oldFile, String newFile, String url, String oldVer, String newVer, boolean isDownloaded) {
         UpdateListEntry entry = new UpdateListEntry(this, projectId, modName,/*  author, description, changelog,*/ oldFile, newFile, url, oldVer, newVer);
         entry.isDownloaded = isDownloaded;
         if (isDownloaded) {
@@ -25,6 +25,11 @@ public class UpdateListWidget extends ObjectSelectionList<UpdateListEntry> {
         for (UpdateListEntry entry : this.children()) {
             entry.selected = state;
         }
+    }
+
+    // Safely clears the list using Minecraft's protected method
+    public void clearUpdates() {
+        this.clearEntries();
     }
 
     // Gets only the mods that have a green checkmark

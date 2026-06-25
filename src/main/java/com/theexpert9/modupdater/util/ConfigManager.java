@@ -19,6 +19,14 @@ public class ConfigManager {
         public boolean enableNotifications = true;
         public AutoCheckMode autoCheckMode = AutoCheckMode.ALL;
         
+
+        public int scanIntervalMinutes = 15;
+        // How many mods to check per API request to prevent Rate Limits (Default 50)
+        public int apiBatchSize = 50; 
+        
+        // Toggle the Toast notification pop-up
+        public boolean showNotifications = true;
+
         // Changed to an Opt-Out system. If a mod isn't here, it's enabled by default!
         public List<String> ignoredMods = new ArrayList<>();
     }

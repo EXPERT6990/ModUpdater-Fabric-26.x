@@ -3,6 +3,7 @@ package com.theexpert9.modupdater;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.theexpert9.modupdater.gui.UpdateScreen;
 import com.theexpert9.modupdater.util.ConfigManager;
+import com.theexpert9.modupdater.util.UpdateManager;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -27,13 +28,32 @@ public class ModUpdater implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         LOGGER.info("ModUpdater initialized!");
-        //UpdateManager.startPeriodicScanner();
+        UpdateManager.startPeriodicScanner();
         ConfigManager.load(); // Load user settings
 
+        // 1. Register the KeyBinding (Default: 'U' key)
+        KeyMapping openUpdaterKey = KeyMappingHelper.registerKeyMapping(
+            new KeyMapping(
+                "Update Screen", 
+                org.lwjgl.glfw.GLFW.GLFW_KEY_U, // Default key
+                UPDATER_CATEGORY
+            )
+        );
+
+        // 2. Listen for the key press in the Client Tick Event
+        ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            while (openUpdaterKey.consumeClick()) {
+                // If they are not already in a menu, open the Updater!
+                if (client.screen == null) {
+                    client.setScreen(new com.theexpert9.modupdater.gui.CustomUpdateScreen(null));
+                }
+            }
+        });
+        
         KeyMapping openUpdateScreenKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
-                "key.modupdater.open",
+                "ModUpdaterFabric Settings",
                 InputConstants.Type.KEYSYM,
-                GLFW.GLFW_KEY_U,
+                GLFW.GLFW_KEY_F12,
                 UPDATER_CATEGORY
         ));
 
