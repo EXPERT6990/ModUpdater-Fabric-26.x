@@ -1,7 +1,6 @@
  
 package com.theexpert9.modupdater.api;
 
-import net.fabricmc.loader.api.FabricLoader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;

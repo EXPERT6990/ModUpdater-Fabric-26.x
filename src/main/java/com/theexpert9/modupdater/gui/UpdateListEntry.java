@@ -8,6 +8,8 @@ import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 
 public class UpdateListEntry extends ObjectSelectionList.Entry<UpdateListEntry> {
+    public boolean isDownloaded = false;
+
     public final String projectId;
     public final String modName;
     public final String oldFilename;
@@ -36,18 +38,36 @@ public class UpdateListEntry extends ObjectSelectionList.Entry<UpdateListEntry> 
         int y = this.getY();
 
         // 1. Draw Upgraded Solid Checkbox with a Crisp Outer Border Accent
-        int checkboxX = x + 5;
+        // int checkboxX = x + 5;
+        // int checkboxY = y + 5;
+        // graphics.fill(checkboxX, checkboxY, checkboxX + 12, checkboxY + 12, 0xFF555555); // Outer border shell
+        // graphics.fill(checkboxX + 1, checkboxY + 1, checkboxX + 11, checkboxY + 11, 0xFF1A1A1A); // Dark solid inner container
+
+        // // 2. Draw the "Checked" inner solid core
+        // if (selected) {
+        //     graphics.fill(checkboxX + 3, checkboxY + 3, checkboxX + 9, checkboxY + 9, 0xFF00FF00); // High-contrast solid green core
+        // }
+
+        // 3. Draw Checkbox OR Downloaded Status
+        int checkboxX = x + this.parent.getRowWidth() - 20;
         int checkboxY = y + 5;
-        graphics.fill(checkboxX, checkboxY, checkboxX + 12, checkboxY + 12, 0xFF555555); // Outer border shell
-        graphics.fill(checkboxX + 1, checkboxY + 1, checkboxX + 11, checkboxY + 11, 0xFF1A1A1A); // Dark solid inner container
-
-        // 2. Draw the "Checked" inner solid core
-        if (selected) {
-            graphics.fill(checkboxX + 3, checkboxY + 3, checkboxX + 9, checkboxY + 9, 0xFF00FF00); // High-contrast solid green core
-        }
-
+        
         // 3. Draw Mod Name (Bold Bright White) and Version Transitions (Red -> Green)
         Minecraft client = Minecraft.getInstance();
+
+        if (this.isDownloaded) {
+            // Draw a strike-through style or text indicating it's done
+            graphics.text(client.font, Component.literal("§a§lQUEUED"), checkboxX - 35, checkboxY, 0xFFFFFFFF, false);
+        } else {
+            graphics.fill(checkboxX, checkboxY, checkboxX + 12, checkboxY + 12, 0xFF555555);
+            graphics.fill(checkboxX + 1, checkboxY + 1, checkboxX + 11, checkboxY + 11, 0xFF1A1A1A);
+
+            if (selected) {
+                graphics.fill(checkboxX + 3, checkboxY + 3, checkboxX + 9, checkboxY + 9, 0xFF00FF00); 
+            }
+        }
+
+        
         
         // §f = White, §l = Bold
         graphics.text(client.font, Component.literal("§f§l" + this.modName), x + 25, y + 2, 0xFFFFFFFF, false);
@@ -57,12 +77,25 @@ public class UpdateListEntry extends ObjectSelectionList.Entry<UpdateListEntry> 
         graphics.text(client.font, Component.literal(versionFormatting), x + 25, y + 13, 0xFFFFFFFF, false);
     }
 
+    // @Override
+    // public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+    //     this.parent.setSelected(this);
+        
+    //     if (event.x() - this.getX() < 20) {
+    //         this.selected = !this.selected;
+    //     }
+    //     return true;
+    // }
+
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         this.parent.setSelected(this);
         
-        if (event.x() - this.getX() < 20) {
-            this.selected = !this.selected;
+        int checkboxX = this.getX() + this.parent.getRowWidth() - 20;
+        if (event.x() >= checkboxX && event.x() <= checkboxX + 12) {
+            if (!this.isDownloaded) { // ONLY toggle if not already downloaded!
+                this.selected = !this.selected;
+            }
         }
         return true;
     }

@@ -69,15 +69,33 @@ public class CustomUpdateScreen extends Screen {
 
         // Download Button
         this.addRenderableWidget(Button.builder(Component.literal("Download Selected"), button -> {
-            if (!this.isScanning && !this.isDownloading && !this.readyToApply) startDownload();
+            if (!this.isScanning && !this.isDownloading ) startDownload();
         }).bounds(panelX + panelWidth - 235, buttonY, 120, 20).build());
 
-        // 1. Brand New Independent Manual Apply Changes Button
+        // // 1. Brand New Independent Manual Apply Changes Button
+        // this.applyButton = Button.builder(Component.literal("Apply Changes"), button -> {
+        //     if (this.readyToApply) applyAndRestart();
+        // }).bounds(panelX + panelWidth - 110, buttonY, 110, 20).build();
+        
+        // this.applyButton.active = false; // Kept disabled until data downloads successfully
+        // this.addRenderableWidget(this.applyButton);
+
+        // Inside init(): Look for waiting files immediately!
+        List<String> pendingFiles = getPendingDownloadedFiles();
+        if (!pendingFiles.isEmpty()) {
+            this.readyToApply = true;
+        }
+
         this.applyButton = Button.builder(Component.literal("Apply Changes"), button -> {
-            if (this.readyToApply) applyAndRestart();
+            if (this.readyToApply) {
+                // Open the new Confirm Screen instead of instantly restarting!
+                if (this.minecraft != null) {
+                    this.minecraft.setScreen(new ConfirmApplyScreen(this, getPendingDownloadedFiles(), this::applyAndRestart));
+                }
+            }
         }).bounds(panelX + panelWidth - 110, buttonY, 110, 20).build();
         
-        this.applyButton.active = false; // Kept disabled until data downloads successfully
+        this.applyButton.active = this.readyToApply; 
         this.addRenderableWidget(this.applyButton);
 
         runBackendScan();
@@ -125,7 +143,12 @@ public class CustomUpdateScreen extends Screen {
                         String cleanOldVer = "Old"; 
                         String cleanNewVer = newVer.version_number();
                         
-                        this.listWidget.addRealUpdate(newVer.project_id(), oldFilename.replace(".jar", ""), oldFilename, primaryFile.filename(), primaryFile.url(), cleanOldVer, cleanNewVer);
+                        // this.listWidget.addRealUpdate(newVer.project_id(), oldFilename.replace(".jar", ""), oldFilename, primaryFile.filename(), primaryFile.url(), cleanOldVer, cleanNewVer);
+                        // Check if this EXACT new file is already sitting in the pending folder
+                        boolean alreadyDownloaded = getPendingDownloadedFiles().contains(primaryFile.filename());
+
+                        // Pass the boolean as the final parameter!
+                        this.listWidget.addRealUpdate(newVer.project_id(), oldFilename.replace(".jar", ""),/*  realName, author, desc, changelog, */oldFilename, primaryFile.filename(), primaryFile.url(), cleanOldVer, cleanNewVer, alreadyDownloaded);
                     }
                 }
                 updateStatus(count == 0 ? "All mods up to date!" : "Found " + count + " available updates.");
@@ -193,6 +216,25 @@ public class CustomUpdateScreen extends Screen {
         StringBuilder hexString = new StringBuilder();
         for (byte b : digest.digest()) hexString.append(String.format("%02x", b & 0xFF));
         return hexString.toString();
+    }
+
+    // Helper to see exactly what is waiting in the pending folder
+    private List<String> getPendingDownloadedFiles() {
+        List<String> pending = new ArrayList<>();
+        try {
+            Path pendingDir = DownloadManager.getPendingUpdatesDir();
+            if (Files.exists(pendingDir)) {
+                try (Stream<Path> stream = Files.list(pendingDir)) {
+                    stream.forEach(p -> {
+                        String name = p.getFileName().toString();
+                        if (name.endsWith(".jar") && !name.equals("updater.jar")) {
+                            pending.add(name);
+                        }
+                    });
+                }
+            }
+        } catch (Exception ignored) {}
+        return pending;
     }
 
     @Override
