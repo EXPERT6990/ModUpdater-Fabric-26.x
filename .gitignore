@@ -17,7 +17,7 @@ bin/
 # Fabric
 .fabric/
 runs/
-
+./Easy-Install/
 # OS Specific
 .DS_Store
 Thumbs.db
