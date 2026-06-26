@@ -16,7 +16,7 @@
     "modmenu": ["com.theexpert9.modupdater.gui.ModMenuIntegration"]
   },
   "depends": {
-    "fabricloader": ">=0.19.2",
+    "fabricloader": "*",
     "minecraft": ">=26.1 <=27.0",
     "java": ">=25",
     "fabric-api": "*",
