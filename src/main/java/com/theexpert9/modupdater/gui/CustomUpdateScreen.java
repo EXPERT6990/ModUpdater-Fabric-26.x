@@ -42,60 +42,6 @@ public class CustomUpdateScreen extends Screen {
         this.parentScreen = parent;
     }
 
-    // @Override
-    // protected void init() {
-    //     super.init();
-
-    //     int panelX = 40;
-    //     int panelY = 40;
-    //     int panelWidth = this.width - 80;
-    //     int panelHeight = this.height - 90;
-    //     int listWidth = (int) (panelWidth * 0.60);
-
-    //     this.listWidget = new UpdateListWidget(this.minecraft, listWidth, panelHeight - 30, panelY + 25, 26);
-    //     this.listWidget.setX(panelX);
-    //     this.addRenderableWidget(this.listWidget);
-
-    //     int buttonY = panelY + panelHeight + 5;
-
-    //     this.addRenderableWidget(Button.builder(Component.literal("Back"), button -> {
-    //         if (this.minecraft != null) this.minecraft.setScreen(this.parentScreen);
-    //     }).bounds(10, 10, 50, 20).build());
-
-    //     this.addRenderableWidget(Button.builder(Component.literal("Select All"), button -> {
-    //         this.listWidget.setAllSelected(true);
-    //     }).bounds(panelX, buttonY, 75, 20).build());
-
-    //     this.addRenderableWidget(Button.builder(Component.literal("Deselect All"), button -> {
-    //         this.listWidget.setAllSelected(false);
-    //     }).bounds(panelX + 80, buttonY, 80, 20).build());
-
-    //     // Download Button
-    //     this.addRenderableWidget(Button.builder(Component.literal("Download Selected"), button -> {
-    //         if (!this.isScanning && !this.isDownloading ) startDownload();
-    //     }).bounds(panelX + panelWidth - 235, buttonY, 120, 20).build());
-
-    //     // Inside init(): Look for waiting files immediately!
-    //     List<String> pendingFiles = getPendingDownloadedFiles();
-    //     if (!pendingFiles.isEmpty()) {
-    //         this.readyToApply = true;
-    //     }
-
-    //     this.applyButton = Button.builder(Component.literal("Apply Changes"), button -> {
-    //         if (this.readyToApply) {
-    //             // Open the new Confirm Screen instead of instantly restarting!
-    //             if (this.minecraft != null) {
-    //                 this.minecraft.setScreen(new ConfirmApplyScreen(this, getPendingDownloadedFiles(), this::applyAndRestart));
-    //             }
-    //         }
-    //     }).bounds(panelX + panelWidth - 110, buttonY, 110, 20).build();
-        
-    //     this.applyButton.active = this.readyToApply; 
-    //     this.addRenderableWidget(this.applyButton);
-
-    //     runBackendScan();
-    // }
-
     @Override
     protected void init() {
         super.init();
@@ -121,19 +67,7 @@ public class CustomUpdateScreen extends Screen {
             if (this.minecraft != null) this.minecraft.setScreen(this.parentScreen);
         }).bounds(10, 10, 50, 20).build());
 
-        // // BRAND NEW: The Manual Refresh Button
-        // this.addRenderableWidget(Button.builder(Component.literal("Refresh"), button -> {
-        //     if (!this.isDownloading) {
-        //         this.statusMessage = "Refreshing updates from Modrinth...";
-        //         this.listWidget.children().clear(); // Clear the screen
-                
-        //         // Ask the Manager to scan, and when it finishes, reload the UI!
-        //         UpdateManager.forceRefresh().thenRun(() -> {
-        //             if (this.minecraft != null) this.minecraft.execute(this::loadUpdatesFromCache);
-        //         });
-        //     }
-        // }).bounds(panelX, panelY - 25, 75, 20).build()); // Placed neatly above the list
-
+        // BRAND NEW: The Manual Refresh Button
         this.addRenderableWidget(Button.builder(Component.literal("Refresh"), button -> {
             if (!this.isDownloading) {
                 this.statusMessage = "Refreshing updates from Modrinth...";
@@ -226,61 +160,6 @@ public class CustomUpdateScreen extends Screen {
         this.statusMessage = "Displaying " + count + " available updates.";
     }
 
-    /*
-    private void runBackendScan() {
-        // (Unchanged Hash Scanning and Bulk API lookup logic stays completely intact)
-        CompletableFuture.runAsync(() -> {
-            Map<String, String> hashToFilename = new HashMap<>();
-            ConfigManager.ConfigData config = ConfigManager.getConfig();
-
-            try (Stream<Path> stream = Files.list(FabricLoader.getInstance().getGameDir().resolve("mods"))) {
-                stream.filter(path -> path.toString().endsWith(".jar")).forEach(path -> {
-                    String filename = path.getFileName().toString();
-                    if (!filename.startsWith("fabric-") && !filename.equals("updater.jar")) {
-                        if (config.autoCheckMode == ConfigManager.AutoCheckMode.ALL || 
-                           (config.autoCheckMode == ConfigManager.AutoCheckMode.MANUAL && !config.ignoredMods.contains(filename))) {
-                            try { hashToFilename.put(getFileHash(path), filename); } catch (Exception ignored) {}
-                        }
-                    }
-                });
-            } catch (Exception ignored) {}
-
-            if (hashToFilename.isEmpty()) {
-                updateStatus("No monitored mods found.");
-                return;
-            }
-
-            Map<String, ModrinthClient.ModVersion> apiResponse = ModrinthClient.checkBulkUpdates(new ArrayList<>(hashToFilename.keySet()), "26.1.2").join();
-            
-            this.minecraft.execute(() -> {
-                int count = 0;
-                for (Map.Entry<String, ModrinthClient.ModVersion> entry : apiResponse.entrySet()) {
-                    String oldHash = entry.getKey();
-                    ModrinthClient.ModVersion newVer = entry.getValue();
-                    String oldFilename = hashToFilename.get(oldHash);
-
-                    if (newVer.files() == null || newVer.files().isEmpty()) continue;
-                    ModrinthClient.ModFile primaryFile = newVer.files().stream().filter(ModrinthClient.ModFile::primary).findFirst().orElse(newVer.files().get(0));
-                    String newHash = primaryFile.hashes().get("sha1");
-
-                    if (newHash != null && !oldHash.equals(newHash)) {
-                        count++;
-                        // Splitting and cleaning up versions into simple parameters
-                        String cleanOldVer = "Old"; 
-                        String cleanNewVer = newVer.version_number();
-                        
-                        // Check if this EXACT new file is already sitting in the pending folder
-                        boolean alreadyDownloaded = getPendingDownloadedFiles().contains(primaryFile.filename());
-
-                        // Pass the boolean as the final parameter!
-                        this.listWidget.addRealUpdate(newVer.project_id(), oldFilename.replace(".jar", ""),/*  realName, author, desc, changelog, *\/oldFilename, primaryFile.filename(), primaryFile.url(), cleanOldVer, cleanNewVer, alreadyDownloaded);
-                    }
-                }
-                updateStatus(count == 0 ? "All mods up to date!" : "Found " + count + " available updates.");
-            });
-        });
-    }
-    */
 
     private void startDownload() {
         List<UpdateListEntry> toDownload = this.listWidget.getCheckedEntries();
@@ -331,20 +210,6 @@ public class CustomUpdateScreen extends Screen {
             });
         }
     }
-
-
-    /*
-    private String getFileHash(Path path) throws Exception {
-        MessageDigest digest = MessageDigest.getInstance("SHA-1");
-        try (InputStream is = Files.newInputStream(path)) {
-            byte[] buffer = new byte[8192];
-            int read;
-            while ((read = is.read(buffer)) > 0) digest.update(buffer, 0, read);
-        }
-        StringBuilder hexString = new StringBuilder();
-        for (byte b : digest.digest()) hexString.append(String.format("%02x", b & 0xFF));
-        return hexString.toString();
-    } */
 
     // Helper to see exactly what is waiting in the pending folder
     private List<String> getPendingDownloadedFiles() {

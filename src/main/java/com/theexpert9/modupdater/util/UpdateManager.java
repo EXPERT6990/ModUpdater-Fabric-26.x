@@ -85,17 +85,6 @@ public class UpdateManager {
             int batchSize = 50; // Check 50 mods at a time
             Map<String, ModrinthClient.ModVersion> allApiResults = new HashMap<>();
 
-            // for (int i = 0; i < allHashes.size(); i += batchSize) {
-            //     List<String> batch = allHashes.subList(i, Math.min(i + batchSize, allHashes.size()));
-            //     updateStatus("Checking updates (Batch " + ((i / batchSize) + 1) + ")...");
-                
-            //     Map<String, ModrinthClient.ModVersion> batchResult = ModrinthClient.checkBulkUpdates(batch, mcVersion).join();
-            //     if (batchResult != null) allApiResults.putAll(batchResult);
-
-            //     // Polite pause between batches to prevent Modrinth IP bans
-            //     if (i + batchSize < allHashes.size()) Thread.sleep(600); 
-            // }
-
             for (int i = 0; i < allHashes.size(); i += batchSize) {
                 // WRAPPED IN 'new ArrayList<>()' TO PREVENT THE JSON CRASH!
                 List<String> batch = new ArrayList<>(allHashes.subList(i, Math.min(i + batchSize, allHashes.size())));
