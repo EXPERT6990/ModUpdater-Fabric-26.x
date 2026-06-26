@@ -62,6 +62,12 @@ dependencies {
    // implementation name: 'yacl-3.9.3'
     implementation "dev.isxander.yacl:yet-another-config-lib-fabric:${project.yacl_version}"
 
+    // Easy-Install Integration via Local File
+    implementation files('Easy-Install/fabric/build/libs/easy-install-fabric-1.1.11.jar')
+    
+    // include the Easy-Install jar in the final mod jar
+    include files('Easy-Install/fabric/build/libs/easy-install-fabric-1.1.11.jar')
+
 }
 
 processResources {
