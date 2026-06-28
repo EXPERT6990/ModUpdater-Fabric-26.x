@@ -13,7 +13,7 @@ bin/
 .classpath
 .project
 .vscode/
-
+Easy-Install/*
 # Fabric
 .fabric/
 runs/

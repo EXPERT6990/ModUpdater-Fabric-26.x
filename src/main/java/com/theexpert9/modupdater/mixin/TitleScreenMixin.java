@@ -23,10 +23,18 @@ public abstract class TitleScreenMixin extends Screen {
 
     @Inject(method = "init", at = @At("RETURN"))
     private void onInit(CallbackInfo ci) {
-        int buttonWidth = 20;
-        int buttonHeight = 20;
-        int x = this.width / 2 + 104 + buttonWidth ; // Position to the right of the "Options" button
-        int y = this.height / 4 + 48 + 72 + 12;
+        Button quitButton = null;
+
+		for (var widget : this.children()) {
+			if(widget instanceof Button button && button.getMessage().getString().equals("Mods")) {
+				quitButton = button;
+				break;
+			}
+			else if (widget instanceof Button button && button.getMessage().getString().equals("Quit Game")) {
+				quitButton = button;
+				break;
+			}
+    	}
 
         // 1. We create a clean Local Class that formally extends Button
         class UpdaterButton extends Button {
@@ -50,7 +58,7 @@ public abstract class TitleScreenMixin extends Screen {
         }
 
         // Initialize our new local class
-        Button updaterButton = new UpdaterButton(x, y, buttonWidth, buttonHeight, Component.literal("Mod Updater"), button -> {
+        Button updaterButton = new UpdaterButton(quitButton.getX() + quitButton.getWidth() + 20 + 4, quitButton.getY(), 20, 20, Component.literal("Mod Updater"), button -> {
             if (this.minecraft != null) {
                 this.minecraft.setScreen(new CustomUpdateScreen(this));
             }

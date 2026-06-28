@@ -5,6 +5,7 @@
   "name": "Mod Updater",
   "description": "Automatically checks, downloads, and applies mod updates from Modrinth.",
   "authors": ["TheExpert9"],
+  "credits": ["neelesh For Easy-Install", "Modrinth For The API"],
   "contact": {
     "repo": "https://github.com/EXPERT6990/ModUpdater-Fabric-26.x"
   },
