@@ -5,10 +5,12 @@ import com.theexpert9.modupdater.gui.UpdateScreen;
 import com.theexpert9.modupdater.util.ConfigManager;
 import com.theexpert9.modupdater.util.DownloadManager;
 import com.theexpert9.modupdater.util.UpdateManager;
+import com.theexpert9.modupdater.gui.CustomUpdateScreen;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.gui.components.toasts.SystemToast;
 import net.minecraft.network.chat.Component;
@@ -84,7 +86,13 @@ public class ModUpdater implements ClientModInitializer {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (openUpdateScreenKey.consumeClick()) {
                 if (client.gui.screen() == null) {
-                    client.gui.setScreen(UpdateScreen.create(null));
+                    if (FabricLoader.getInstance().isModLoaded("yet-another-config-lib_v3")
+                            && FabricLoader.getInstance().isModLoaded("modmenu")) {
+                        client.gui.setScreen(UpdateScreen.create(null));
+                    }
+                    else {
+                        client.gui.setScreen(new CustomUpdateScreen(null));
+                    }
                 }
             }
         });

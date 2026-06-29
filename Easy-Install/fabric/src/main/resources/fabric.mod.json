@@ -39,5 +39,13 @@
 	},
 	"suggests": {
 		"another-mod": "*"
-	}
+	},
+	"custom": {
+    "modmenu": {
+      "badges": [
+        "library"
+      ],
+      "parent": "modupdater" 
+    }
+  }
 }
