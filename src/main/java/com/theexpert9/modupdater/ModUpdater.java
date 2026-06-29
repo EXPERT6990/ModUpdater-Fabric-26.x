@@ -83,14 +83,30 @@ public class ModUpdater implements ClientModInitializer {
             });
         });
 
+        // ClientTickEvents.END_CLIENT_TICK.register(client -> {
+        //     while (openUpdateScreenKey.consumeClick()) {
+        //         if (client.gui.screen() == null) {
+        //             if (FabricLoader.getInstance().isModLoaded("yet-another-config-lib_v3")
+        //                     && FabricLoader.getInstance().isModLoaded("modmenu")) {
+        //                 client.gui.setScreen(UpdateScreen.create(null));
+        //             }
+        //             else {
+        //                 client.gui.setScreen(new CustomUpdateScreen(null));
+        //             }
+        //         }
+        //     }
+        // });
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (openUpdateScreenKey.consumeClick()) {
                 if (client.gui.screen() == null) {
-                    if (FabricLoader.getInstance().isModLoaded("yet-another-config-lib_v3")
-                            && FabricLoader.getInstance().isModLoaded("modmenu")) {
-                        client.gui.setScreen(UpdateScreen.create(null));
-                    }
-                    else {
+                    boolean hasYacl = FabricLoader.getInstance().isModLoaded("yet-another-config-lib_v3");
+                    boolean hasModMenu = FabricLoader.getInstance().isModLoaded("modmenu");
+
+                    if (hasYacl && hasModMenu) {
+                        // SAFELY route through the router to isolate YACL imports!
+                        client.gui.setScreen(com.theexpert9.modupdater.util.YaclScreenRouter.createYaclScreen(null));
+                    } else {
+                        // Safe native fallback UI
                         client.gui.setScreen(new CustomUpdateScreen(null));
                     }
                 }
