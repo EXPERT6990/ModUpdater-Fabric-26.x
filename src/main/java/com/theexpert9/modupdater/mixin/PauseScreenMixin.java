@@ -85,7 +85,7 @@ public class PauseScreenMixin extends Screen {
                 Component.literal("Mod Updater"), 
                 button -> {
                     if (this.minecraft != null) {
-                        this.minecraft.setScreen(new CustomUpdateScreen(this));
+                        this.minecraft.gui.setScreen(new CustomUpdateScreen(this));
                     }
                 }
         );

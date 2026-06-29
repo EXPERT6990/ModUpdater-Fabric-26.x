@@ -4,7 +4,7 @@ import com.theexpert9.modupdater.api.ModrinthClient;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.ModContainer;
 import net.fabricmc.loader.api.metadata.ModMetadata;
-
+import net.minecraft.client.Minecraft;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -124,11 +124,11 @@ public class UpdateManager {
             // Done ** TODO (Optional): Send a push notification/Toast to the player here if updates > 0 and isManual == false
             // Trigger a Minecraft Toast Notification if we found updates during a background scan!
             if (!isManual && !AVAILABLE_UPDATES.isEmpty()) {
-                net.minecraft.client.Minecraft client = net.minecraft.client.Minecraft.getInstance();
+                Minecraft client = Minecraft.getInstance();
                 if (client != null) {
                     client.execute(() -> {
                         net.minecraft.client.gui.components.toasts.SystemToast.add(
-                                client.getToastManager(),
+                                client.gui.toastManager(),
                                 net.minecraft.client.gui.components.toasts.SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
                                 net.minecraft.network.chat.Component.literal("Mod Updates Available"),
                                 net.minecraft.network.chat.Component.literal("Found " + AVAILABLE_UPDATES.size() + " updates to install!")

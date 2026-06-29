@@ -61,7 +61,7 @@ public class TitleScreenMixin extends Screen {
         // Initialize our new local class
         Button updaterButton = new UpdaterButton(quitButton.getX() + quitButton.getWidth() + 20 + 20 + 4, quitButton.getY(), 20, 20, Component.literal("Mod Updater"), button -> {
 			ProjectBrowser modBrowser = new ProjectBrowser(this, ProjectType.MOD);
-			Minecraft.getInstance().setScreen((Screen) ((Object) modBrowser));
+			Minecraft.getInstance().gui.setScreen((Screen) ((Object) modBrowser));
 		});
 
         updaterButton.setTooltip(Tooltip.create(Component.literal("Get Mods")));

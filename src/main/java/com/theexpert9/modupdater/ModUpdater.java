@@ -3,6 +3,7 @@ package com.theexpert9.modupdater;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.theexpert9.modupdater.gui.UpdateScreen;
 import com.theexpert9.modupdater.util.ConfigManager;
+import com.theexpert9.modupdater.util.DownloadManager;
 import com.theexpert9.modupdater.util.UpdateManager;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
@@ -27,6 +28,7 @@ public class ModUpdater implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        //Runtime.getRuntime().addShutdownHook(new Thread(DownloadManager::shutdown));
         LOGGER.info("ModUpdater initialized!");
         UpdateManager.startPeriodicScanner();
         ConfigManager.load(); // Load user settings
@@ -44,8 +46,8 @@ public class ModUpdater implements ClientModInitializer {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (openUpdaterKey.consumeClick()) {
                 // If they are not already in a menu, open the Updater!
-                if (client.screen == null) {
-                    client.setScreen(new com.theexpert9.modupdater.gui.CustomUpdateScreen(null));
+                if (client.gui.screen() == null) {
+                    client.gui.setScreen(new com.theexpert9.modupdater.gui.CustomUpdateScreen(null));
                 }
             }
         });
@@ -73,7 +75,7 @@ public class ModUpdater implements ClientModInitializer {
                         String keyName = openUpdateScreenKey.getTranslatedKeyMessage().getString();
                         Component message = Component.literal(updates + " updates available! Press [" + keyName + "] to view.");
                         
-                        client.getToastManager().addToast(new SystemToast(SystemToast.SystemToastId.PERIODIC_NOTIFICATION, title, message));
+                        client.gui.toastManager().addToast(new SystemToast(SystemToast.SystemToastId.PERIODIC_NOTIFICATION, title, message));
                     });
                 }
             });
@@ -81,11 +83,11 @@ public class ModUpdater implements ClientModInitializer {
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (openUpdateScreenKey.consumeClick()) {
-                if (client.screen == null) {
-                    client.setScreen(UpdateScreen.create(null));
+                if (client.gui.screen() == null) {
+                    client.gui.setScreen(UpdateScreen.create(null));
                 }
             }
         });
     }
-
+    
 }

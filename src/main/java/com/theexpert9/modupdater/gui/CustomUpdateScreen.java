@@ -64,7 +64,7 @@ public class CustomUpdateScreen extends Screen {
 
         // --- BUTTONS ---
         this.addRenderableWidget(Button.builder(Component.literal("Back"), button -> {
-            if (this.minecraft != null) this.minecraft.setScreen(this.parentScreen);
+            if (this.minecraft != null) this.minecraft.gui.setScreen(this.parentScreen);
         }).bounds(10, 10, 50, 20).build());
 
         // BRAND NEW: The Manual Refresh Button
@@ -102,7 +102,7 @@ public class CustomUpdateScreen extends Screen {
 
         this.applyButton = Button.builder(Component.literal("Apply Changes"), button -> {
             if (this.readyToApply && this.minecraft != null) {
-                this.minecraft.setScreen(new ConfirmApplyScreen(this, getPendingDownloadedFiles(), this::applyAndRestart));
+                this.minecraft.gui.setScreen(new ConfirmApplyScreen(this, getPendingDownloadedFiles(), this::applyAndRestart));
             }
         }).bounds(panelX + panelWidth - 110, buttonY, 110, 20).build();
         

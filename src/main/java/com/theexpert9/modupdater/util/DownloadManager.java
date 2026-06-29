@@ -18,6 +18,10 @@ public class DownloadManager {
     // Strictly limits concurrent downloads to 5 threads as requested
     private static final ExecutorService DOWNLOAD_POOL = Executors.newFixedThreadPool(5);
     
+    // public static void shutdown() {
+    //     DOWNLOAD_POOL.shutdownNow();
+    // }
+
     private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
             .followRedirects(HttpClient.Redirect.ALWAYS)
             .build();

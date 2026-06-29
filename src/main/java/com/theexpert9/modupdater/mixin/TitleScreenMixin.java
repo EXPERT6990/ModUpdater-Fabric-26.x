@@ -60,7 +60,7 @@ public abstract class TitleScreenMixin extends Screen {
         // Initialize our new local class
         Button updaterButton = new UpdaterButton(quitButton.getX() + quitButton.getWidth() + 20 + 4, quitButton.getY(), 20, 20, Component.literal("Mod Updater"), button -> {
             if (this.minecraft != null) {
-                this.minecraft.setScreen(new CustomUpdateScreen(this));
+                this.minecraft.gui.setScreen(new CustomUpdateScreen(this));
             }
         });
 

@@ -17,10 +17,10 @@ repositories {
         name = "TerraformersMC" 
         url = "https://maven.terraformersmc.com/releases/" 
     }
-    // isxander-releases for YACL
-    maven { 
-        name = "isxander-releases" 
-        url = "https://maven.isxander.dev/releases" 
+
+    maven {
+        name = 'Xander Maven'
+        url = 'https://maven.isxander.dev/releases'
     }
 
     maven { url "https://api.modrinth.com/maven" }
@@ -30,24 +30,10 @@ repositories {
 
 }
 
-// loom {
-// 	splitEnvironmentSourceSets()
-
-// 	mods {
-// 		"modupdater" {
-// 			sourceSet sourceSets.main
-// 			sourceSet sourceSets.client
-// 		}
-// 	}
-
-// }
 
 dependencies {
-    // The core Minecraft 26.1.2 dependency
+    // The core Minecraft dependency
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
-    
-    // Strict enforcement of Official Mojang Mappings
-    //mappings loom.officialMojangMappings()
     
     // Fabric Loader 0.19.2+
     implementation "net.fabricmc:fabric-loader:${project.loader_version}"
@@ -58,15 +44,9 @@ dependencies {
     // Mod Menu Integration
     implementation "com.terraformersmc:modmenu:${project.modmenu_version}"
 
-    // YACL Integration via Maven
-   // implementation name: 'yacl-3.9.3'
-    implementation "dev.isxander.yacl:yet-another-config-lib-fabric:${project.yacl_version}"
+    // YACL Integration
+    implementation "dev.isxander:yet-another-config-lib:${project.yacl_version}"
 
-    // // Easy-Install Integration via Local File
-    // implementation files('libs/easy-install.jar')
-    
-    // // include the Easy-Install jar in the final mod jar
-    // include files('libs/easy-install.jar')
     // Use the exact name of the jar file (excluding the .jar extension)
     implementation name: '../Easy-Install/fabric/build/libs/easy-install-fabric-1.1.10'
     include name: '../Easy-Install/fabric/build/libs/easy-install-fabric-1.1.10'

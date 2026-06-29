@@ -64,7 +64,7 @@ public class PauseScreenMixin extends Screen {
                 quitButton.getY(), 20, 20, Component.literal("Get Mods"),
                 button -> {
                     ProjectBrowser modBrowser = new ProjectBrowser(this, ProjectType.MOD);
-                    Minecraft.getInstance().setScreen((Screen) ((Object) modBrowser));
+                    Minecraft.getInstance().gui.setScreen((Screen) ((Object) modBrowser));
                 });
 
         this.addRenderableWidget(updaterButton);

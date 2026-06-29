@@ -28,7 +28,7 @@ public class ConfirmApplyScreen extends Screen {
         }).bounds(this.width / 2 - 105, this.height - 40, 100, 20).build());
 
         this.addRenderableWidget(Button.builder(Component.literal("Cancel"), button -> {
-            if (this.minecraft != null) this.minecraft.setScreen(this.parentScreen);
+            if (this.minecraft != null) this.minecraft.gui.setScreen(this.parentScreen);
         }).bounds(this.width / 2 + 5, this.height - 40, 100, 20).build());
     }
 

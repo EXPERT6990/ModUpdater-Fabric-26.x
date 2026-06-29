@@ -104,7 +104,7 @@ public class UpdateScreen {
                         // Trigger a manual background refresh if they click when idle!
                         // buttonOption.getOptionUI().setLocked(true);
                         UpdateManager.forceRefresh().whenComplete((res, err) -> {
-                            Minecraft.getInstance().execute(() -> Minecraft.getInstance().setScreen(create(parent)));
+                            Minecraft.getInstance().execute(() -> Minecraft.getInstance().gui.setScreen(create(parent)));
                         });
                     }
                     else if (state.equals("ready")) downloadSelectedMods(parent, availableUpdates);
@@ -229,13 +229,13 @@ public class UpdateScreen {
             DownloadManager.downloadMod(update.downloadUrl(), update.newFilename(), (percent, speedMBps) -> {
                 Minecraft.getInstance().execute(() -> {
                     String progress = String.format("Downloading %s... %.0f%% (%.1f MB/s)", update.newFilename(), percent, speedMBps);
-                    Minecraft.getInstance().setScreen(buildScreen(parent, availableUpdates, "downloading", progress));
+                    Minecraft.getInstance().gui.setScreen(buildScreen(parent, availableUpdates, "downloading", progress));
                 });
             }).thenAccept(path -> {
                 StatusWriter.appendUpdate(update.oldFilename(), update.newFilename());
                 if (completedCount.incrementAndGet() >= total) {
                     Minecraft.getInstance().execute(() -> {
-                        Minecraft.getInstance().setScreen(buildScreen(parent, availableUpdates, "done", "Downloads Complete - RESTART GAME"));
+                        Minecraft.getInstance().gui.setScreen(buildScreen(parent, availableUpdates, "done", "Downloads Complete - RESTART GAME"));
                     });
                 }
             });
