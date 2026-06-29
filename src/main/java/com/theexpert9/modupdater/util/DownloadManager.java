@@ -9,7 +9,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
+// import java.nio.file.StandardCopyOption;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -17,14 +17,20 @@ import java.util.concurrent.Executors;
 public class DownloadManager {
     // Strictly limits concurrent downloads to 5 threads as requested
     private static final ExecutorService DOWNLOAD_POOL = Executors.newFixedThreadPool(5);
-    
-    // public static void shutdown() {
-    //     DOWNLOAD_POOL.shutdownNow();
-    // }
+
 
     private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
             .followRedirects(HttpClient.Redirect.ALWAYS)
+            .executor(DOWNLOAD_POOL)
             .build();
+    public static void shutdown() {
+        if (DOWNLOAD_POOL != null && !DOWNLOAD_POOL.isShutdown()) {
+            DOWNLOAD_POOL.shutdownNow();
+        }
+        if (HTTP_CLIENT != null) {
+            HTTP_CLIENT.close();
+        }
+    }
 
     /**
      * Locates or creates the mods/.pending_updates/ directory.

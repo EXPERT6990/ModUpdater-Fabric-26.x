@@ -3,7 +3,7 @@ package com.theexpert9.modupdater.util;
 import com.theexpert9.modupdater.api.ModrinthClient;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.ModContainer;
-import net.fabricmc.loader.api.metadata.ModMetadata;
+// import net.fabricmc.loader.api.metadata.ModMetadata;
 import net.minecraft.client.Minecraft;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -11,7 +11,7 @@ import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.stream.Collectors;
+// import java.util.stream.Collectors;
 
 public class UpdateManager {
     // 1. Core State Memory (Instant access for the UI)
@@ -29,9 +29,13 @@ public class UpdateManager {
     // Called ONCE when the game boots (inside your Mod Initializer)
     public static void startPeriodicScanner() {
         // Read your config for the interval (Default: 15 mins)
-        int intervalMins = ConfigManager.getConfig().scanIntervalMinutes; 
-        
+        int intervalMins = ConfigManager.getConfig().scanIntervalMinutes;
+
         SCHEDULER.scheduleAtFixedRate(() -> performScan(false), 0, intervalMins, TimeUnit.MINUTES);
+    }
+    
+    public static void shutdown() {
+        if (SCHEDULER != null && !SCHEDULER.isShutdown()) SCHEDULER.shutdown();
     }
 
     // Called by the UI's "Refresh" button

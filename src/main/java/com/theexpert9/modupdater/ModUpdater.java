@@ -88,6 +88,14 @@ public class ModUpdater implements ClientModInitializer {
                 }
             }
         });
+
+         ClientLifecycleEvents.CLIENT_STOPPING.register(client -> {
+            // 1. Kill the active download workers
+            DownloadManager.shutdown();
+            
+             // 2. Kill the 15-minute background update timer
+            UpdateManager.shutdown();
+        });
     }
     
 }
