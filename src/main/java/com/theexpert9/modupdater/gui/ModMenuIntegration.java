@@ -11,7 +11,7 @@ public class ModMenuIntegration implements ModMenuApi {
         // When the user clicks the "Config" button in Mod Menu, it launches our YACL screen
         // return UpdateScreen::create;
 
-        boolean hasYacl = FabricLoader.getInstance().isModLoaded("yet-another-config-lib_v3");
+        boolean hasYacl = FabricLoader.getInstance().isModLoaded("yet_another_config_lib_v3");
 
         if (hasYacl) {
             // Only touches the isolated class if YACL is present

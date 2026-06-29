@@ -99,7 +99,7 @@ public class ModUpdater implements ClientModInitializer {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (openUpdateScreenKey.consumeClick()) {
                 if (client.gui.screen() == null) {
-                    boolean hasYacl = FabricLoader.getInstance().isModLoaded("yet-another-config-lib_v3");
+                    boolean hasYacl = FabricLoader.getInstance().isModLoaded("yet_another_config_lib_v3");
                     boolean hasModMenu = FabricLoader.getInstance().isModLoaded("modmenu");
 
                     if (hasYacl && hasModMenu) {
