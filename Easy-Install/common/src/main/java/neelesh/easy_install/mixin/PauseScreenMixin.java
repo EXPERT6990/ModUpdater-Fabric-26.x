@@ -1,3 +1,5 @@
+
+//EASY_INSTALL MIXIN (LIBRARY FOR MODUPDATER)
 package neelesh.easy_install.mixin;
 
 

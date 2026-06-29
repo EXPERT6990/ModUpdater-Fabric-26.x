@@ -7,7 +7,10 @@
   "authors": ["TheExpert9"],
   "credits": ["neelesh For Easy-Install", "Modrinth For The API"],
   "contact": {
-    "repo": "https://github.com/EXPERT6990/ModUpdater-Fabric-26.x"
+    "repo": "https://github.com/EXPERT6990/ModUpdater-Fabric-26.x",
+    "homepage": "https://modrinth.com/mod/modupdaterfabric",
+    "sources": "https://github.com/EXPERT6990/ModUpdater-Fabric-26.x.git",
+    "issues": "https://github.com/EXPERT6990/ModUpdater-Fabric-26.x/issues"
   },
   "license": "MIT",
   "icon": "assets/modupdater/icon.png",

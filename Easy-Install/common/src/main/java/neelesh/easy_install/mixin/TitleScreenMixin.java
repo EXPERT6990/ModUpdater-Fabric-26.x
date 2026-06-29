@@ -1,5 +1,5 @@
+//EASY_INSTALL MIXIN (LIBRARY FOR MODUPDATER)
 package neelesh.easy_install.mixin;
-
 
 import neelesh.easy_install.EasyInstallClient;
 import neelesh.easy_install.ProjectType;
