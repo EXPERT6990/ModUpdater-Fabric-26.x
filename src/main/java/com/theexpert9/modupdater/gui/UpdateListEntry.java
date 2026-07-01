@@ -76,8 +76,8 @@ public class UpdateListEntry extends ObjectSelectionList.Entry<UpdateListEntry> 
         //                             .withColor(net.minecraft.util.CommonColors.GREEN);
         // } */ else {
             // 3. Normal idle state: show the old -> new version swap layout
-            versionDisplay = Component.literal(this.oldVer + " → " + this.newVer)
-                                    .withColor(net.minecraft.util.CommonColors.WHITE); //"§c§l" + this.oldVer + " §f§l➔ §a§l" + this.newVer;
+            versionDisplay = Component.literal("§c§l" + this.oldVer + " §f§l➔ §a§l" + this.newVer);
+                                    //.withColor(net.minecraft.util.CommonColors.WHITE); //"§c§l" + this.oldVer + " §f§l➔ §a§l" + this.newVer;
         //}
         graphics.text(client.font, versionDisplay, x + 25, y + 13, 0xFFFFFFFF, false);
 }

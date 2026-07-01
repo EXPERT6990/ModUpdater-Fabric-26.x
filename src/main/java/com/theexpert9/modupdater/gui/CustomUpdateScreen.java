@@ -211,7 +211,7 @@ public class CustomUpdateScreen extends Screen {
                 // Pipe percent directly down to the global tracker module for real-time tracking
                 neelesh.easy_install.util.GlobalDownloadTracker.setProgress(update.projectId, (float)(percent / 100.0));
                 
-                updateStatus(String.format("Downloading %s... %.0f%% (%.1f MB/s)", update.newFilename, percent, speedMBps));
+                updateStatus("Downloading Updates");
             }).thenAccept(path -> {
                 StatusWriter.appendUpdate(update.oldFilename, update.newFilename);
                 
