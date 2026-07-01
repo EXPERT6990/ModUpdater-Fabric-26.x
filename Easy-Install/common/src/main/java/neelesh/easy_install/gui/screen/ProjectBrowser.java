@@ -333,7 +333,7 @@ public class ProjectBrowser extends Screen {
                 if (isGloballyDownloading || INFO[i].isInstalling()) {
                     float currentProgress = neelesh.easy_install.util.GlobalDownloadTracker.getProgress(currentSlug) * 100.0f;
                     // Formats perfectly as "Installing (45%)"
-                    installButtons[i].setMessage(Component.nullToEmpty(String.format("Installing (%d%%)", (int) currentProgress)));
+                    installButtons[i].setMessage(Component.nullToEmpty(String.format("(%d%%)", (int) currentProgress)));
                 } else if (isGloballyFinished || INFO[i].isInstalled()) {
                     installButtons[i].setMessage(Component.nullToEmpty("Installed"));
                 } else if (INFO[i].isUpdated()) {
