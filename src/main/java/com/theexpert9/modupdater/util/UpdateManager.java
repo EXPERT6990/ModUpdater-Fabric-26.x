@@ -43,6 +43,10 @@ public class UpdateManager {
         return CompletableFuture.runAsync(() -> performScan(true));
     }
 
+    public static void scanNow() {
+        performScan(true);
+    }
+
     private static void performScan(boolean isManual) {
         if (isScanning) return;
         isScanning = true;

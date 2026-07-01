@@ -103,12 +103,32 @@ public class CustomUpdateScreen extends Screen {
                 startDownload();
         }).bounds(panelX + panelWidth - 235, buttonY, 120, 20).build());
 
+        // this.applyButton = Button.builder(Component.literal("Apply Changes"), button -> {
+        //     if (this.readyToApply && this.minecraft != null) {
+        //         this.minecraft.gui
+        //                 .setScreen(new ConfirmApplyScreen(this, getPendingDownloadedFiles(), this::applyAndRestart));
+        //     }
+        // }).bounds(panelX + panelWidth - 110, buttonY, 110, 20).build();
+        boolean downloadingGlobally = isAnyDownloadActive();
+
         this.applyButton = Button.builder(Component.literal("Apply Changes"), button -> {
-            if (this.readyToApply && this.minecraft != null) {
+            if (this.readyToApply && !isAnyDownloadActive() && this.minecraft != null) {
                 this.minecraft.gui
                         .setScreen(new ConfirmApplyScreen(this, getPendingDownloadedFiles(), this::applyAndRestart));
             }
         }).bounds(panelX + panelWidth - 110, buttonY, 110, 20).build();
+
+        // Disable the button if no files are ready OR if a download is currently active
+        this.applyButton.active = this.readyToApply && !downloadingGlobally;
+
+        // Add the dynamic descriptive hover tooltip
+        if (downloadingGlobally) {
+            this.applyButton.setTooltip(net.minecraft.client.gui.components.Tooltip.create(
+                    Component.literal("§cCannot apply changes while downloads are active!")));
+        } else if (!this.readyToApply) {
+            this.applyButton.setTooltip(net.minecraft.client.gui.components.Tooltip.create(
+                    Component.literal("No updates have been downloaded yet.")));
+        }
 
         this.applyButton.active = this.readyToApply;
         this.addRenderableWidget(this.applyButton);
@@ -193,41 +213,103 @@ public class CustomUpdateScreen extends Screen {
     //     }
     // }
 
+    // private void startDownload() {
+    //     List<UpdateListEntry> toDownload = this.listWidget.getCheckedEntries();
+    //     if (toDownload.isEmpty())
+    //         return;
+
+    //     this.isDownloading = true;
+    //     this.applyButton.active = false; // 1. CRITICAL SAFEGUARD: Prevent restarts mid-download!
+
+    //     AtomicInteger completedCount = new AtomicInteger(0);
+    //     int total = toDownload.size();
+
+    //     for (UpdateListEntry update : toDownload) {
+    //         // Tell our global tracker this specific mod ID has started processing
+    //         neelesh.easy_install.util.GlobalDownloadTracker.setState(update.projectId, 1);
+
+    //         DownloadManager.downloadMod(update.downloadUrl, update.newFilename, (percent, speedMBps) -> {
+    //             // Pipe percent directly down to the global tracker module for real-time tracking
+    //             neelesh.easy_install.util.GlobalDownloadTracker.setProgress(update.projectId,
+    //                     (float) (percent / 100.0));
+
+    //             updateStatus("Downloading Updates");
+    //         }).thenAccept(path -> {
+    //             StatusWriter.appendUpdate(update.oldFilename, update.newFilename);
+
+    //             // Mark as fully finished and completed inside memory
+    //             neelesh.easy_install.util.GlobalDownloadTracker.setState(update.projectId, 2);
+
+    //             if (completedCount.incrementAndGet() >= total) {
+    //                 this.minecraft.execute(() -> {
+    //                     this.isDownloading = false;
+    //                     this.readyToApply = true;
+    //                     this.applyButton.active = true; // Re-activate the apply button once ALL are done
+    //                     updateStatus("Downloads Complete! Click 'Apply Changes' to complete installation.");
+    //                 });
+    //             }
+    //         });
+    //     }
+    // }
+
     private void startDownload() {
         List<UpdateListEntry> toDownload = this.listWidget.getCheckedEntries();
         if (toDownload.isEmpty()) return;
 
         this.isDownloading = true;
-        this.applyButton.active = false; // 1. CRITICAL SAFEGUARD: Prevent restarts mid-download!
+        this.applyButton.active = false; // Immediately disable the apply button!
         
         AtomicInteger completedCount = new AtomicInteger(0);
         int total = toDownload.size();
 
         for (UpdateListEntry update : toDownload) {
-            // Tell our global tracker this specific mod ID has started processing
+            // Mark the unique mod ID as actively downloading inside our memory tracker
             neelesh.easy_install.util.GlobalDownloadTracker.setState(update.projectId, 1);
+            
+            // Append a temporary file extension name to mask partial network files from the path validator
+            String tempFilename = update.newFilename + ".tmp";
 
-            DownloadManager.downloadMod(update.downloadUrl, update.newFilename, (percent, speedMBps) -> {
-                // Pipe percent directly down to the global tracker module for real-time tracking
+            DownloadManager.downloadMod(update.downloadUrl, tempFilename, (percent, speedMBps) -> {
                 neelesh.easy_install.util.GlobalDownloadTracker.setProgress(update.projectId, (float)(percent / 100.0));
-                
-                updateStatus("Downloading Updates");
+                updateStatus(String.format("Downloading...."));
             }).thenAccept(path -> {
-                StatusWriter.appendUpdate(update.oldFilename, update.newFilename);
-                
-                // Mark as fully finished and completed inside memory
-                neelesh.easy_install.util.GlobalDownloadTracker.setState(update.projectId, 2);
+                try {
+                    // Rename the verified file container back to a stable .jar once completely downloaded
+                    Path finalPath = path.getParent().resolve(update.newFilename);
+                    java.nio.file.Files.move(path, finalPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                    
+                    StatusWriter.appendUpdate(update.oldFilename, update.newFilename);
+                    neelesh.easy_install.util.GlobalDownloadTracker.setState(update.projectId, 2); // Completed
+                } catch (Exception e) {
+                    System.err.println("Failed to finalize file rename operation for: " + update.newFilename);
+                    e.printStackTrace();
+                }
 
                 if (completedCount.incrementAndGet() >= total) {
                     this.minecraft.execute(() -> {
                         this.isDownloading = false;
-                        this.readyToApply = true;
-                        this.applyButton.active = true; // Re-activate the apply button once ALL are done
+                        this.readyToApply = !getPendingDownloadedFiles().isEmpty();
+                        this.applyButton.active = this.readyToApply; 
                         updateStatus("Downloads Complete! Click 'Apply Changes' to complete installation.");
                     });
                 }
             });
         }
+    }
+    
+    
+    private boolean isAnyDownloadActive() {
+        // If the local screen says it's downloading, trust it immediately
+        if (this.isDownloading)
+            return true;
+
+        // Scan all available cached updates to check their thread states in the global tracker
+        for (String projectId : UpdateManager.AVAILABLE_UPDATES.keySet()) {
+            if (neelesh.easy_install.util.GlobalDownloadTracker.getState(projectId) == 1) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void applyAndRestart() {
@@ -270,16 +352,50 @@ public class CustomUpdateScreen extends Screen {
                 try (Stream<Path> stream = Files.list(pendingDir)) {
                     stream.forEach(p -> {
                         String name = p.getFileName().toString();
+                        
+                        // Strict validation: Skip incomplete temp buffers entirely
                         if (name.endsWith(".jar") && !name.equals("updater.jar")) {
-                            pending.add(name);
+                            
+                            // Cross-check across memory maps to confirm this ID isn't downloading anywhere
+                            boolean isStillStreaming = false;
+                            for (UpdateManager.CachedUpdate cache : UpdateManager.AVAILABLE_UPDATES.values()) {
+                                if (cache.primaryFilename().equals(name)) {
+                                    if (neelesh.easy_install.util.GlobalDownloadTracker.getState(cache.newVersion().project_id()) == 1) {
+                                        isStillStreaming = true;
+                                        break;
+                                    }
+                                }
+                            }
+                            
+                            if (!isStillStreaming) {
+                                pending.add(name);
+                            }
                         }
                     });
                 }
             }
-        } catch (Exception ignored) {
-        }
+        } catch (Exception ignored) {}
         return pending;
     }
+
+    // private List<String> getPendingDownloadedFiles() {
+    //     List<String> pending = new ArrayList<>();
+    //     try {
+    //         Path pendingDir = DownloadManager.getPendingUpdatesDir();
+    //         if (Files.exists(pendingDir)) {
+    //             try (Stream<Path> stream = Files.list(pendingDir)) {
+    //                 stream.forEach(p -> {
+    //                     String name = p.getFileName().toString();
+    //                     if (name.endsWith(".jar") && !name.equals("updater.jar")) {
+    //                         pending.add(name);
+    //                     }
+    //                 });
+    //             }
+    //         }
+    //     } catch (Exception ignored) {
+    //     }
+    //     return pending;
+    // }
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {

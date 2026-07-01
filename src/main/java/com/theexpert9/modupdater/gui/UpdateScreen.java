@@ -7,6 +7,7 @@ import com.theexpert9.modupdater.util.UpdateManager;
 import dev.isxander.yacl3.api.ButtonOption;
 import dev.isxander.yacl3.api.ConfigCategory;
 import dev.isxander.yacl3.api.Option;
+import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.YetAnotherConfigLib;
 import dev.isxander.yacl3.api.controller.EnumControllerBuilder;
 import dev.isxander.yacl3.api.controller.TickBoxControllerBuilder;
@@ -114,13 +115,33 @@ public class UpdateScreen {
         // --- NEW: DEDICATED APPLY BUTTON ---
         // If there is AT LEAST ONE downloaded mod waiting, show the Apply button!
         boolean hasWaitingFiles = availableUpdates.stream().anyMatch(PendingUIUpdate::isDownloaded);
-        if (hasWaitingFiles && !state.equals("done")) {
-            updatesCategory.option(ButtonOption.createBuilder()
-                    .name(Component.literal("🚀 Apply Downloaded Mods & Restart"))
-                    .description(dev.isxander.yacl3.api.OptionDescription.of(Component.literal("You have updates waiting to be installed!")))
-                    .action((screen, buttonOption) -> applyAndRestart())
-                    .build());
+        // if (hasWaitingFiles && !state.equals("done")) {
+        //     updatesCategory.option(ButtonOption.createBuilder()
+        //             .name(Component.literal("🚀 Apply Downloaded Mods & Restart"))
+        //             .description(dev.isxander.yacl3.api.OptionDescription
+        //                     .of(Component.literal("You have updates waiting to be installed!")))
+        //             .action((screen, buttonOption) -> applyAndRestart())
+        //             .build());
+        // }
+        
+        boolean downloadingGlobally = false;
+        for (String projectId : UpdateManager.AVAILABLE_UPDATES.keySet()) {
+            if (neelesh.easy_install.util.GlobalDownloadTracker.getState(projectId) == 1) {
+                downloadingGlobally = true;
+                break;
+            }
         }
+
+        // Inside your YACL Option/Button builder block:
+        ButtonOption applyOption = ButtonOption.createBuilder()
+            .name(Component.literal("🚀 Downloaded Mods & Restart"))
+            .description(downloadingGlobally 
+                ? OptionDescription.of(Component.literal("§cDisabled: Downloads are currently running in the background."))
+                : OptionDescription.of(Component.literal("Click to verify and apply staged updates.")))
+            // Set the button's clickability state natively
+            .available(!downloadingGlobally && hasWaitingFiles) 
+            .action((screen, buttonOption) -> applyAndRestart())
+            .build();
         // ------------------------------------
 
         for (PendingUIUpdate update : availableUpdates) {

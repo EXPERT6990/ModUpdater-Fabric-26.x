@@ -67,7 +67,7 @@ public class ModUpdater implements ClientModInitializer {
             
             // Skip checking entirely if set to NONE
             if (config.autoCheckMode == ConfigManager.AutoCheckMode.NONE) return;
-
+            UpdateManager.scanNow();
             CompletableFuture.runAsync(() -> {
                 int updates = UpdateScreen.getAvailableUpdateCountSilent();
                 if (updates > 0 && config.enableNotifications) {
