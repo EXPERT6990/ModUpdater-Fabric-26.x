@@ -36,17 +36,21 @@ public class UpdateListEntry extends ObjectSelectionList.Entry<UpdateListEntry> 
     public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean isHovered, float partialTick) {
         int x = this.getX();
         int y = this.getY();
-
         // 3. Draw Checkbox OR Downloaded Status
         int checkboxX = x + this.parent.getRowWidth() - 20;
         int checkboxY = y + 5;
-        
+
+        int currentState = neelesh.easy_install.util.GlobalDownloadTracker.getState(this.projectId);
+
         // 3. Draw Mod Name (Bold Bright White) and Version Transitions (Red -> Green)
         Minecraft client = Minecraft.getInstance();
-
         if (this.isDownloaded) {
             // Draw a strike-through style or text indicating it's done
             graphics.text(client.font, Component.literal("§a§lQUEUED"), checkboxX - 35, checkboxY, 0xFFFFFFFF, false);
+        } else if (currentState == 1) {
+            // 1. If currently installing, override version display with real-time percentage
+            float currentProgress = neelesh.easy_install.util.GlobalDownloadTracker.getProgress(this.projectId) * 100.0f;
+            graphics.text(client.font, Component.literal(String.format("§e§lDOWNLOADING (%d%%)", (int) currentProgress)), checkboxX - 35, checkboxY, 0xFFFFFFFF, false);
         } else {
             graphics.fill(checkboxX, checkboxY, checkboxX + 12, checkboxY + 12, 0xFF555555);
             graphics.fill(checkboxX + 1, checkboxY + 1, checkboxX + 11, checkboxY + 11, 0xFF1A1A1A);
@@ -55,16 +59,28 @@ public class UpdateListEntry extends ObjectSelectionList.Entry<UpdateListEntry> 
                 graphics.fill(checkboxX + 3, checkboxY + 3, checkboxX + 9, checkboxY + 9, 0xFF00FF00); 
             }
         }
-
-        
-        
         // §f = White, §l = Bold
         graphics.text(client.font, Component.literal("§f§l" + this.modName), x + 25, y + 2, 0xFFFFFFFF, false);
         
         // §c = Red, §f = White, §a = Green, §l = Bold
-        String versionFormatting = "§c§l" + this.oldVer + " §f§l➔ §a§l" + this.newVer;
-        graphics.text(client.font, Component.literal(versionFormatting), x + 25, y + 13, 0xFFFFFFFF, false);
-    }
+        Component versionDisplay;
+
+        // if (currentState == 1) {
+        //     // 1. If currently installing, override version display with real-time percentage
+        //     float currentProgress = neelesh.easy_install.util.GlobalDownloadTracker.getProgress(this.projectId) * 100.0f;
+        //     versionDisplay = Component.literal(String.format("Downloading (%d%%)", (int) currentProgress))
+        //                             .withColor(net.minecraft.util.CommonColors.YELLOW);
+        // } /*else if (currentState == 2 || this.isDownloaded) {
+        //     // 2. If finished or marked as cached, show [QUEUED] instantly without needing a screen reload
+        //     versionDisplay = Component.literal("[QUEUED]")
+        //                             .withColor(net.minecraft.util.CommonColors.GREEN);
+        // } */ else {
+            // 3. Normal idle state: show the old -> new version swap layout
+            versionDisplay = Component.literal(this.oldVer + " → " + this.newVer)
+                                    .withColor(net.minecraft.util.CommonColors.WHITE); //"§c§l" + this.oldVer + " §f§l➔ §a§l" + this.newVer;
+        //}
+        graphics.text(client.font, versionDisplay, x + 25, y + 13, 0xFFFFFFFF, false);
+}
 
 
     @Override

@@ -30,7 +30,7 @@ import java.util.stream.Stream;
 public class CustomUpdateScreen extends Screen {
     private final Screen parentScreen;
     private UpdateListWidget listWidget;
-    
+
     private boolean isScanning = true;
     private boolean isDownloading = false;
     private boolean readyToApply = false;
@@ -60,19 +60,21 @@ public class CustomUpdateScreen extends Screen {
 
         // 1. Check for previously downloaded mods (State Persistence)
         List<String> pendingFiles = getPendingDownloadedFiles();
-        if (!pendingFiles.isEmpty()) this.readyToApply = true;
+        if (!pendingFiles.isEmpty())
+            this.readyToApply = true;
 
         // --- BUTTONS ---
         this.addRenderableWidget(Button.builder(Component.literal("Back"), button -> {
-            if (this.minecraft != null) this.minecraft.gui.setScreen(this.parentScreen);
+            if (this.minecraft != null)
+                this.minecraft.gui.setScreen(this.parentScreen);
         }).bounds(10, 10, 50, 20).build());
 
         // BRAND NEW: The Manual Refresh Button
         this.addRenderableWidget(Button.builder(Component.literal("Refresh"), button -> {
             if (!this.isDownloading) {
                 this.statusMessage = "Refreshing updates from Modrinth...";
-                this.listWidget.clearUpdates(); 
-                
+                this.listWidget.clearUpdates();
+
                 // Guarantee the UI thread picks up the result, even if it fails!
                 UpdateManager.forceRefresh().whenComplete((result, error) -> {
                     if (this.minecraft != null) {
@@ -97,16 +99,18 @@ public class CustomUpdateScreen extends Screen {
         }).bounds(panelX + 80, buttonY, 80, 20).build());
 
         this.addRenderableWidget(Button.builder(Component.literal("Download Selected"), button -> {
-            if (!this.isDownloading) startDownload();
+            if (!this.isDownloading)
+                startDownload();
         }).bounds(panelX + panelWidth - 235, buttonY, 120, 20).build());
 
         this.applyButton = Button.builder(Component.literal("Apply Changes"), button -> {
             if (this.readyToApply && this.minecraft != null) {
-                this.minecraft.gui.setScreen(new ConfirmApplyScreen(this, getPendingDownloadedFiles(), this::applyAndRestart));
+                this.minecraft.gui
+                        .setScreen(new ConfirmApplyScreen(this, getPendingDownloadedFiles(), this::applyAndRestart));
             }
         }).bounds(panelX + panelWidth - 110, buttonY, 110, 20).build();
-        
-        this.applyButton.active = this.readyToApply; 
+
+        this.applyButton.active = this.readyToApply;
         this.addRenderableWidget(this.applyButton);
 
         // 2. Instead of scanning, instantly load what is already in memory!
@@ -119,7 +123,7 @@ public class CustomUpdateScreen extends Screen {
         this.listWidget.clearUpdates();
 
         if (UpdateManager.AVAILABLE_UPDATES.isEmpty()) {
-            this.statusMessage = UpdateManager.currentStatus; 
+            this.statusMessage = UpdateManager.currentStatus;
             return;
         }
 
@@ -132,8 +136,11 @@ public class CustomUpdateScreen extends Screen {
                 String realName = meta.getName() != null ? meta.getName() : "Unknown Mod";
 
                 // Safety: Null check the versions before splitting
-                String cleanOldVer = meta.getVersion() != null ? meta.getVersion().getFriendlyString().split("\\+")[0] : "v?";
-                String cleanNewVer = cache.newVersion().version_number() != null ? cache.newVersion().version_number().split("\\+")[0] : "v?";
+                String cleanOldVer = meta.getVersion() != null ? meta.getVersion().getFriendlyString().split("\\+")[0]
+                        : "v?";
+                String cleanNewVer = cache.newVersion().version_number() != null
+                        ? cache.newVersion().version_number().split("\\+")[0]
+                        : "v?";
 
                 String oldFilename = "unknown.jar";
                 // Safety: Only try to read paths if it's an actual physical file
@@ -147,38 +154,75 @@ public class CustomUpdateScreen extends Screen {
 
                 boolean alreadyDownloaded = pendingFiles.contains(cache.primaryFilename());
 
-                this.listWidget.addRealUpdate(cache.newVersion().project_id(), realName, oldFilename, cache.primaryFilename(), cache.downloadUrl(), cleanOldVer, cleanNewVer, alreadyDownloaded);
+                this.listWidget.addRealUpdate(cache.newVersion().project_id(), realName, oldFilename,
+                        cache.primaryFilename(), cache.downloadUrl(), cleanOldVer, cleanNewVer, alreadyDownloaded);
                 count++;
-                
+
             } catch (Exception e) {
                 // If ONE mod breaks, catch it so the other 24 still load!
                 System.err.println("Failed to render update for: " + cache.localMod().getMetadata().getId());
-                e.printStackTrace(); 
+                e.printStackTrace();
             }
         }
 
         this.statusMessage = "Displaying " + count + " available updates.";
     }
 
+    // private void startDownload() {
+    //     List<UpdateListEntry> toDownload = this.listWidget.getCheckedEntries();
+    //     if (toDownload.isEmpty()) return;
+
+    //     this.isDownloading = true;
+    //     AtomicInteger completedCount = new AtomicInteger(0);
+    //     int total = toDownload.size();
+
+    //     for (UpdateListEntry update : toDownload) {
+    //         DownloadManager.downloadMod(update.downloadUrl, update.newFilename, (percent, speedMBps) -> {
+    //             updateStatus(String.format("Downloading %s... %.0f%% (%.1f MB/s)", update.newFilename, percent, speedMBps));
+    //         }).thenAccept(path -> {
+    //             StatusWriter.appendUpdate(update.oldFilename, update.newFilename);
+    //             if (completedCount.incrementAndGet() >= total) {
+    //                 this.minecraft.execute(() -> {
+    //                     this.isDownloading = false;
+    //                     this.readyToApply = true;
+    //                     this.applyButton.active = true; // Activating button now!
+    //                     updateStatus("Downloads Complete! Click 'Apply Changes' to complete installation.");
+    //                 });
+    //             }
+    //         });
+    //     }
+    // }
 
     private void startDownload() {
         List<UpdateListEntry> toDownload = this.listWidget.getCheckedEntries();
         if (toDownload.isEmpty()) return;
 
         this.isDownloading = true;
+        this.applyButton.active = false; // 1. CRITICAL SAFEGUARD: Prevent restarts mid-download!
+        
         AtomicInteger completedCount = new AtomicInteger(0);
         int total = toDownload.size();
 
         for (UpdateListEntry update : toDownload) {
+            // Tell our global tracker this specific mod ID has started processing
+            neelesh.easy_install.util.GlobalDownloadTracker.setState(update.projectId, 1);
+
             DownloadManager.downloadMod(update.downloadUrl, update.newFilename, (percent, speedMBps) -> {
+                // Pipe percent directly down to the global tracker module for real-time tracking
+                neelesh.easy_install.util.GlobalDownloadTracker.setProgress(update.projectId, (float)(percent / 100.0));
+                
                 updateStatus(String.format("Downloading %s... %.0f%% (%.1f MB/s)", update.newFilename, percent, speedMBps));
             }).thenAccept(path -> {
                 StatusWriter.appendUpdate(update.oldFilename, update.newFilename);
+                
+                // Mark as fully finished and completed inside memory
+                neelesh.easy_install.util.GlobalDownloadTracker.setState(update.projectId, 2);
+
                 if (completedCount.incrementAndGet() >= total) {
                     this.minecraft.execute(() -> {
                         this.isDownloading = false;
                         this.readyToApply = true;
-                        this.applyButton.active = true; // Activating button now!
+                        this.applyButton.active = true; // Re-activate the apply button once ALL are done
                         updateStatus("Downloads Complete! Click 'Apply Changes' to complete installation.");
                     });
                 }
@@ -191,16 +235,21 @@ public class CustomUpdateScreen extends Screen {
             Path pendingDir = DownloadManager.getPendingUpdatesDir();
             Path updaterPath = pendingDir.resolve("updater.jar");
             try (InputStream is = CustomUpdateScreen.class.getResourceAsStream("/assets/modupdater/updater.jar")) {
-                if (is != null) Files.copy(is, updaterPath, StandardCopyOption.REPLACE_EXISTING);
-                else return;
+                if (is != null)
+                    Files.copy(is, updaterPath, StandardCopyOption.REPLACE_EXISTING);
+                else
+                    return;
             }
             long pid = ProcessHandle.current().pid();
             String pendingPath = pendingDir.toAbsolutePath().toString();
             String modsPath = FabricLoader.getInstance().getGameDir().resolve("mods").toAbsolutePath().toString();
             String javaPath = ProcessHandle.current().info().command().orElse("java");
-            Runtime.getRuntime().exec(new String[]{javaPath, "-jar", updaterPath.toAbsolutePath().toString(), String.valueOf(pid), modsPath, pendingPath});
+            Runtime.getRuntime().exec(new String[] { javaPath, "-jar", updaterPath.toAbsolutePath().toString(),
+                    String.valueOf(pid), modsPath, pendingPath });
             this.minecraft.stop();
-        } catch (Exception e) { e.printStackTrace(); }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     private void updateStatus(String msg) {
@@ -227,7 +276,8 @@ public class CustomUpdateScreen extends Screen {
                     });
                 }
             }
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
         return pending;
     }
 
@@ -242,10 +292,9 @@ public class CustomUpdateScreen extends Screen {
         int listWidth = (int) (panelWidth * 0.60);
         int sidePanelX = panelX + listWidth;
 
-
-
         // Live status updating! If the manager is scanning, show its live status. Otherwise, show our local message.
-        String displayStatus = UpdateManager.AVAILABLE_UPDATES.isEmpty() ? UpdateManager.currentStatus : this.statusMessage;
+        String displayStatus = UpdateManager.AVAILABLE_UPDATES.isEmpty() ? UpdateManager.currentStatus
+                : this.statusMessage;
         graphics.text(this.font, Component.literal(displayStatus), panelX + 100, panelY + 10, 0xFFFFAA00, false);
 
         graphics.fill(panelX, panelY, panelX + panelWidth, panelY + panelHeight, 0x99000000);
@@ -256,14 +305,20 @@ public class CustomUpdateScreen extends Screen {
 
         UpdateListEntry viewedEntry = this.listWidget.getSelected();
         if (viewedEntry != null) {
-            graphics.text(this.font, Component.literal("Selected Mod Details"), sidePanelX + 10, panelY + 10, 0xFFFFAA00, false);
-            graphics.text(this.font, Component.literal("§f§l" + viewedEntry.modName), sidePanelX + 10, panelY + 30, 0xFFFFFFFF, false);
-            graphics.text(this.font, Component.literal("File: " + viewedEntry.newFilename), sidePanelX + 10, panelY + 45, 0xFFAAAAAA, false);
-            
-            graphics.text(this.font, Component.literal("[ Mod Icon Area ]"), sidePanelX + 10, panelY + 80, 0xFF555555, false);
-            graphics.text(this.font, Component.literal("Changelog data coming soon..."), sidePanelX + 10, panelY + 100, 0xFF555555, false);
+            graphics.text(this.font, Component.literal("Selected Mod Details"), sidePanelX + 10, panelY + 10,
+                    0xFFFFAA00, false);
+            graphics.text(this.font, Component.literal("§f§l" + viewedEntry.modName), sidePanelX + 10, panelY + 30,
+                    0xFFFFFFFF, false);
+            graphics.text(this.font, Component.literal("File: " + viewedEntry.newFilename), sidePanelX + 10,
+                    panelY + 45, 0xFFAAAAAA, false);
+
+            graphics.text(this.font, Component.literal("[ Mod Icon Area ]"), sidePanelX + 10, panelY + 80, 0xFF555555,
+                    false);
+            graphics.text(this.font, Component.literal("Changelog data coming soon..."), sidePanelX + 10, panelY + 100,
+                    0xFF555555, false);
         } else {
-            graphics.text(this.font, Component.literal("Select a mod to view details."), sidePanelX + 10, panelY + 10, 0xFFAAAAAA, false);
+            graphics.text(this.font, Component.literal("Select a mod to view details."), sidePanelX + 10, panelY + 10,
+                    0xFFAAAAAA, false);
         }
     }
 }
