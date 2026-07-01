@@ -15,7 +15,7 @@ public class Main {
 
         long pid = Long.parseLong(args[0]);
         Path modsDir = Paths.get(args[1]);
-        Path pendingDir = modsDir.resolve(".pending_updates");
+        Path pendingDir = Paths.get(args[2]);
         Path statusFile = pendingDir.resolve("update_status.json");
 
         Optional<ProcessHandle> mcProcess = ProcessHandle.of(pid);

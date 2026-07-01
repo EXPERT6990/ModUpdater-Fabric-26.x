@@ -31,7 +31,7 @@ public class UpdateManager {
         // Read your config for the interval (Default: 15 mins)
         int intervalMins = ConfigManager.getConfig().scanIntervalMinutes;
 
-        SCHEDULER.scheduleAtFixedRate(() -> performScan(false), 0, intervalMins, TimeUnit.MINUTES);
+        SCHEDULER.scheduleAtFixedRate(() -> performScan(false), intervalMins, intervalMins, TimeUnit.MINUTES);
     }
     
     public static void shutdown() {

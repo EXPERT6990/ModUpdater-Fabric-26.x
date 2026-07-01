@@ -195,9 +195,10 @@ public class CustomUpdateScreen extends Screen {
                 else return;
             }
             long pid = ProcessHandle.current().pid();
+            String pendingPath = pendingDir.toAbsolutePath().toString();
             String modsPath = FabricLoader.getInstance().getGameDir().resolve("mods").toAbsolutePath().toString();
             String javaPath = ProcessHandle.current().info().command().orElse("java");
-            Runtime.getRuntime().exec(new String[]{javaPath, "-jar", updaterPath.toAbsolutePath().toString(), String.valueOf(pid), modsPath});
+            Runtime.getRuntime().exec(new String[]{javaPath, "-jar", updaterPath.toAbsolutePath().toString(), String.valueOf(pid), modsPath, pendingPath});
             this.minecraft.stop();
         } catch (Exception e) { e.printStackTrace(); }
     }

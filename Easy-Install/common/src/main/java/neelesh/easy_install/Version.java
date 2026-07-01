@@ -72,7 +72,7 @@ public class Version {
     public void download(boolean installDependencies) {
         int numberOfThreads = 5;
         try (ExecutorService executorService = Executors.newFixedThreadPool(numberOfThreads)) {
-            executorService.submit(() -> EasyInstallClient.downloadVersion(this.downloadUrl, this.filename, this.projectType));
+            executorService.submit(() -> EasyInstallClient.downloadVersion(this.downloadUrl, this.filename, this.projectType,this.id));
             if (installDependencies) {
                 for (int i = 0; i < this.dependencies.size(); i++) {
                     if (this.dependencies.get(i).getAsJsonObject().get("dependency_type").getAsString().equals("required")) {

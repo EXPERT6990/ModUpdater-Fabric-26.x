@@ -37,15 +37,17 @@ public class DownloadManager {
      */
     public static Path getPendingUpdatesDir() {
         // Fabric safely resolves the game directory regardless of OS
-        Path modsDir = FabricLoader.getInstance().getGameDir().resolve("mods");
-        Path pendingDir = modsDir.resolve(".pending_updates");
+        //Path modsDir = FabricLoader.getInstance().getGameDir().resolve("mods");
+        Path pendingDir = FabricLoader.getInstance().getConfigDir()
+            .resolve("modupdater")
+            .resolve("pending_updates");
         
         try {
             if (!Files.exists(pendingDir)) {
                 Files.createDirectories(pendingDir);
             }
         } catch (Exception e) {
-            System.err.println("Failed to create .pending_updates directory!");
+            System.err.println("Failed to create pending_updates directory!");
             e.printStackTrace();
         }
         return pendingDir;

@@ -204,8 +204,40 @@ public class ProjectBrowser extends Screen {
         this.addWidget(filtersButton);
         for (int i = 0; i < 100; i++) {
             int finalI = i;
+            // Button buttonWidget = Button.builder(Component.nullToEmpty("Install"), button -> {
+            //     INFO[finalI].setInstalling(true);
+            //     Thread thread = new Thread(() -> {
+            //         if (!INFO[finalI].isUpdated()) {
+            //             Thread thread2 = new Thread(() -> {
+            //                 EasyInstallClient.deleteOldFiles(projectType, INFO[finalI].getLatestHash());
+            //             });
+            //             thread2.start();
+            //             for (Version version : updatedVersions) {
+            //                 if (version.getId().equals(INFO[finalI].getId())) {
+            //                     version.download(false);
+            //                 }
+            //             }
+            //         } else {
+            //             EasyInstallClient.downloadVersion(INFO[finalI].getSlug(), projectType, filteredByGameVersion);
+            //         }
+            //         INFO[finalI].setInstalling(false);
+            //         INFO[finalI].setInstalled(true);
+            //         t = new Thread(() -> EasyInstallClient.checkStatus(projectType));
+            //         t.start();
+            //         Thread thread2 = new Thread(() -> this.updatedVersions = EasyInstallClient.getUpdatedVersions(projectType));
+            //         thread2.start();
+
+            //     });
+            //     thread.start();
+            // }).build();
+
             Button buttonWidget = Button.builder(Component.nullToEmpty("Install"), button -> {
+                String projectSlug = INFO[finalI].getSlug();
+                
+                // Mark globally active!
+                neelesh.easy_install.util.GlobalDownloadTracker.setState(projectSlug, 1);
                 INFO[finalI].setInstalling(true);
+                
                 Thread thread = new Thread(() -> {
                     if (!INFO[finalI].isUpdated()) {
                         Thread thread2 = new Thread(() -> {
@@ -218,15 +250,18 @@ public class ProjectBrowser extends Screen {
                             }
                         }
                     } else {
-                        EasyInstallClient.downloadVersion(INFO[finalI].getSlug(), projectType, filteredByGameVersion);
+                        EasyInstallClient.downloadVersion(projectSlug, projectType, filteredByGameVersion);
                     }
+                    
+                    // Mark globally finished!
+                    neelesh.easy_install.util.GlobalDownloadTracker.setState(projectSlug, 2);
                     INFO[finalI].setInstalling(false);
                     INFO[finalI].setInstalled(true);
+                    
                     t = new Thread(() -> EasyInstallClient.checkStatus(projectType));
                     t.start();
                     Thread thread2 = new Thread(() -> this.updatedVersions = EasyInstallClient.getUpdatedVersions(projectType));
                     thread2.start();
-
                 });
                 thread.start();
             }).build();
@@ -274,17 +309,40 @@ public class ProjectBrowser extends Screen {
                 authors[i].extractRenderState(context, mouseX, mouseY, delta);
                 this.addWidget(authors[i]);
                 context.textWithWordWrap(font, FormattedText.of(INFO[i].getDescription().replace("\n", "")), 55, firstRowY + (int) scrollAmount + i * 50 + 15, width - 65, CommonColors.WHITE, false);
+                // installButtons[i].setY(firstRowY + (int) scrollAmount + i * 50 - 3);
+                // if (isGloballyDownloading || INFO[i].isInstalling()) {
+                //     float currentProgress = neelesh.easy_install.util.GlobalDownloadTracker.getProgress(currentSlug) * 100.0f;
+                //     // Formats perfectly as "Installing (45%)"
+                //     installButtons[i].setMessage(Component.nullToEmpty(String.format("Installing (%d%%)", (int) currentProgress)));
+                // } else if (INFO[i].isInstalled()) {
+                //     installButtons[i].setMessage(Component.nullToEmpty("Installed"));
+                // } else if (INFO[i].isUpdated()) {
+                //     installButtons[i].setMessage(Component.nullToEmpty("Install"));
+                // } else {
+                //     installButtons[i].setMessage(Component.nullToEmpty("Update"));
+                // }
+                // installButtons[i].active = !INFO[i].isInstalled() && !INFO[i].isInstalling();
+
                 installButtons[i].setY(firstRowY + (int) scrollAmount + i * 50 - 3);
-                if (INFO[i].isInstalling()) {
-                    installButtons[i].setMessage(Component.nullToEmpty("Installing"));
-                } else if (INFO[i].isInstalled()) {
+                
+                // RESTORE STATE CONTEXT FROM PERMANENT SINGLETON
+                String currentSlug = INFO[i].getSlug();
+                boolean isGloballyDownloading = neelesh.easy_install.util.GlobalDownloadTracker.isInstalling(currentSlug);
+                boolean isGloballyFinished = neelesh.easy_install.util.GlobalDownloadTracker.isInstalled(currentSlug);
+
+                if (isGloballyDownloading || INFO[i].isInstalling()) {
+                    float currentProgress = neelesh.easy_install.util.GlobalDownloadTracker.getProgress(currentSlug) * 100.0f;
+                    // Formats perfectly as "Installing (45%)"
+                    installButtons[i].setMessage(Component.nullToEmpty(String.format("Installing (%d%%)", (int) currentProgress)));
+                } else if (isGloballyFinished || INFO[i].isInstalled()) {
                     installButtons[i].setMessage(Component.nullToEmpty("Installed"));
                 } else if (INFO[i].isUpdated()) {
                     installButtons[i].setMessage(Component.nullToEmpty("Install"));
                 } else {
                     installButtons[i].setMessage(Component.nullToEmpty("Update"));
                 }
-                installButtons[i].active = !INFO[i].isInstalled() && !INFO[i].isInstalling();
+                
+                installButtons[i].active = !INFO[i].isInstalled() && !INFO[i].isInstalling() && !isGloballyDownloading && !isGloballyFinished;
                 installButtons[i].extractRenderState(context, mouseX, mouseY, delta);
                 projectScreenButtons[i].setY(firstRowY + (int) scrollAmount + i * 50 - 3);
                 projectScreenButtons[i].extractRenderState(context, mouseX, mouseY, delta);
