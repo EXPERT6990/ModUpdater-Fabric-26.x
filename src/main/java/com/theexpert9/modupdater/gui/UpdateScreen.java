@@ -119,7 +119,7 @@ public class UpdateScreen {
                             Minecraft.getInstance().execute(() -> Minecraft.getInstance().gui.setScreen(create(parent)));
                         });
                     }
-                    else if (state.equals("ready")) {
+                    else if (state.equals("ready") && availableUpdates.stream().anyMatch(u -> selectedMods.getOrDefault(u.projectId(), false))) {
                         buttonOption.setAvailable(false); // Instantly gray it out upon click
                         downloadSelectedMods(parent, availableUpdates);
                     }
@@ -150,6 +150,13 @@ public class UpdateScreen {
             selectedMods.putIfAbsent(update.projectId(), !update.isDownloaded()); 
             
             int globalState = neelesh.easy_install.util.GlobalDownloadTracker.getState(update.projectId());
+
+            // BRAND NEW: If tracker says done but file isn't in pendingFiles list, self-heal!
+            if (globalState == 2 && !update.isDownloaded()) {
+                neelesh.easy_install.util.GlobalDownloadTracker.setState(update.projectId(), 0);
+                globalState = 0;
+            }
+
             boolean isQueued = update.isDownloaded() || globalState == 2;
 
             String label = isQueued 

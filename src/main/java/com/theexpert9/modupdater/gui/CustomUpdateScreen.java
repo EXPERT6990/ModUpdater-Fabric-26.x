@@ -103,12 +103,6 @@ public class CustomUpdateScreen extends Screen {
                 startDownload();
         }).bounds(panelX + panelWidth - 235, buttonY, 120, 20).build());
 
-        // this.applyButton = Button.builder(Component.literal("Apply Changes"), button -> {
-        //     if (this.readyToApply && this.minecraft != null) {
-        //         this.minecraft.gui
-        //                 .setScreen(new ConfirmApplyScreen(this, getPendingDownloadedFiles(), this::applyAndRestart));
-        //     }
-        // }).bounds(panelX + panelWidth - 110, buttonY, 110, 20).build();
         boolean downloadingGlobally = isAnyDownloadActive();
 
         this.applyButton = Button.builder(Component.literal("Apply Changes"), button -> {
@@ -188,69 +182,6 @@ public class CustomUpdateScreen extends Screen {
         this.statusMessage = "Displaying " + count + " available updates.";
     }
 
-    // private void startDownload() {
-    //     List<UpdateListEntry> toDownload = this.listWidget.getCheckedEntries();
-    //     if (toDownload.isEmpty()) return;
-
-    //     this.isDownloading = true;
-    //     AtomicInteger completedCount = new AtomicInteger(0);
-    //     int total = toDownload.size();
-
-    //     for (UpdateListEntry update : toDownload) {
-    //         DownloadManager.downloadMod(update.downloadUrl, update.newFilename, (percent, speedMBps) -> {
-    //             updateStatus(String.format("Downloading %s... %.0f%% (%.1f MB/s)", update.newFilename, percent, speedMBps));
-    //         }).thenAccept(path -> {
-    //             StatusWriter.appendUpdate(update.oldFilename, update.newFilename);
-    //             if (completedCount.incrementAndGet() >= total) {
-    //                 this.minecraft.execute(() -> {
-    //                     this.isDownloading = false;
-    //                     this.readyToApply = true;
-    //                     this.applyButton.active = true; // Activating button now!
-    //                     updateStatus("Downloads Complete! Click 'Apply Changes' to complete installation.");
-    //                 });
-    //             }
-    //         });
-    //     }
-    // }
-
-    // private void startDownload() {
-    //     List<UpdateListEntry> toDownload = this.listWidget.getCheckedEntries();
-    //     if (toDownload.isEmpty())
-    //         return;
-
-    //     this.isDownloading = true;
-    //     this.applyButton.active = false; // 1. CRITICAL SAFEGUARD: Prevent restarts mid-download!
-
-    //     AtomicInteger completedCount = new AtomicInteger(0);
-    //     int total = toDownload.size();
-
-    //     for (UpdateListEntry update : toDownload) {
-    //         // Tell our global tracker this specific mod ID has started processing
-    //         neelesh.easy_install.util.GlobalDownloadTracker.setState(update.projectId, 1);
-
-    //         DownloadManager.downloadMod(update.downloadUrl, update.newFilename, (percent, speedMBps) -> {
-    //             // Pipe percent directly down to the global tracker module for real-time tracking
-    //             neelesh.easy_install.util.GlobalDownloadTracker.setProgress(update.projectId,
-    //                     (float) (percent / 100.0));
-
-    //             updateStatus("Downloading Updates");
-    //         }).thenAccept(path -> {
-    //             StatusWriter.appendUpdate(update.oldFilename, update.newFilename);
-
-    //             // Mark as fully finished and completed inside memory
-    //             neelesh.easy_install.util.GlobalDownloadTracker.setState(update.projectId, 2);
-
-    //             if (completedCount.incrementAndGet() >= total) {
-    //                 this.minecraft.execute(() -> {
-    //                     this.isDownloading = false;
-    //                     this.readyToApply = true;
-    //                     this.applyButton.active = true; // Re-activate the apply button once ALL are done
-    //                     updateStatus("Downloads Complete! Click 'Apply Changes' to complete installation.");
-    //                 });
-    //             }
-    //         });
-    //     }
-    // }
 
     private void startDownload() {
         List<UpdateListEntry> toDownload = this.listWidget.getCheckedEntries();
@@ -378,24 +309,6 @@ public class CustomUpdateScreen extends Screen {
         return pending;
     }
 
-    // private List<String> getPendingDownloadedFiles() {
-    //     List<String> pending = new ArrayList<>();
-    //     try {
-    //         Path pendingDir = DownloadManager.getPendingUpdatesDir();
-    //         if (Files.exists(pendingDir)) {
-    //             try (Stream<Path> stream = Files.list(pendingDir)) {
-    //                 stream.forEach(p -> {
-    //                     String name = p.getFileName().toString();
-    //                     if (name.endsWith(".jar") && !name.equals("updater.jar")) {
-    //                         pending.add(name);
-    //                     }
-    //                 });
-    //             }
-    //         }
-    //     } catch (Exception ignored) {
-    //     }
-    //     return pending;
-    // }
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
