@@ -29,25 +29,28 @@ import java.util.stream.Stream;
 
 public class UpdateScreen {
 
-    // Upgraded record to hold modName and isDownloaded status
     private record PendingUIUpdate(String projectId, String modName, String oldFilename, String newVersion, String downloadUrl, String newFilename, boolean isDownloaded) {}
     private static final Map<String, Boolean> selectedMods = new HashMap<>();
 
-    // Helper to check what is already sitting in the pending folder
+    // Upgraded tracking method to perfectly filter out working .tmp files
     private static List<String> getPendingDownloadedFiles() {
         List<String> pending = new ArrayList<>();
         try {
             Path pendingDir = DownloadManager.getPendingUpdatesDir();
             if (Files.exists(pendingDir)) {
                 try (Stream<Path> stream = Files.list(pendingDir)) {
-                    stream.forEach(p -> pending.add(p.getFileName().toString()));
+                    stream.forEach(p -> {
+                        String name = p.getFileName().toString();
+                        if (name.endsWith(".jar") && !name.equals("updater.jar")) {
+                            pending.add(name);
+                        }
+                    });
                 }
             }
         } catch (Exception ignored) {}
         return pending;
     }
 
-    // Re-added instant method for your Title Screen to read!
     public static int getAvailableUpdateCountSilent() {
         return UpdateManager.AVAILABLE_UPDATES.size();
     }
@@ -56,7 +59,6 @@ public class UpdateScreen {
         List<String> pendingFiles = getPendingDownloadedFiles();
         List<PendingUIUpdate> availableUpdates = new ArrayList<>();
 
-        // 1. INSTANTLY load updates from the background manager's memory!
         for (UpdateManager.CachedUpdate cache : UpdateManager.AVAILABLE_UPDATES.values()) {
             boolean isDownloaded = pendingFiles.contains(cache.primaryFilename());
             
@@ -80,42 +82,7 @@ public class UpdateScreen {
             ));
         }
 
-        // 2. Determine the button state based on the cache
-        String btnText = availableUpdates.isEmpty() ? "No updates available (Click to Refresh)" : "Download Selected Mods";
-        String nextState = availableUpdates.isEmpty() ? "idle" : "ready";
-        
-        // If updates exist AND they are all already downloaded, wake up the Apply button!
-        if (!availableUpdates.isEmpty() && availableUpdates.stream().allMatch(PendingUIUpdate::isDownloaded)) {
-            btnText = "Apply Changes & Restart";
-            nextState = "done";
-        }
-
-        return buildScreen(parent, availableUpdates, nextState, btnText);
-    }
-
-    private static Screen buildScreen(Screen parent, List<PendingUIUpdate> availableUpdates, String state, String statusText) {
-        // --- TAB 1: UPDATES ---
-        ConfigCategory.Builder updatesCategory = ConfigCategory.createBuilder()
-                .name(Component.literal("Updates"));
-
-        updatesCategory.option(ButtonOption.createBuilder()
-                .name(Component.literal(statusText))
-                .action((screen, buttonOption) -> {
-                    if (state.equals("idle")) {
-                        // Trigger a manual background refresh if they click when idle!
-                        // buttonOption.getOptionUI().setLocked(true);
-                        UpdateManager.forceRefresh().whenComplete((res, err) -> {
-                            Minecraft.getInstance().execute(() -> Minecraft.getInstance().gui.setScreen(create(parent)));
-                        });
-                    }
-                    else if (state.equals("ready")) downloadSelectedMods(parent, availableUpdates);
-                    else if (state.equals("done")) applyAndRestart();
-                }).build());
-            
-        // --- NEW: DEDICATED APPLY BUTTON ---
-        // If there is AT LEAST ONE downloaded mod waiting, show the Apply button!
-        boolean hasWaitingFiles = availableUpdates.stream().anyMatch(PendingUIUpdate::isDownloaded);
-        
+        // Global download state check
         boolean downloadingGlobally = false;
         for (String projectId : UpdateManager.AVAILABLE_UPDATES.keySet()) {
             if (neelesh.easy_install.util.GlobalDownloadTracker.getState(projectId) == 1) {
@@ -124,79 +91,112 @@ public class UpdateScreen {
             }
         }
 
-        // Inside your YACL Option/Button builder block:
-        ButtonOption applyOption = ButtonOption.createBuilder()
-            .name(Component.literal("🚀 Downloaded Mods & Restart"))
+        String btnText = availableUpdates.isEmpty() ? "No updates available (Click to Refresh)" : "Download Selected Mods";
+        String nextState = availableUpdates.isEmpty() ? "idle" : "ready";
+        
+        if (downloadingGlobally) {
+            btnText = "Downloads Processing in Background...";
+            nextState = "locked";
+        } else if (!availableUpdates.isEmpty() && availableUpdates.stream().allMatch(PendingUIUpdate::isDownloaded)) {
+            btnText = "Apply Changes & Restart";
+            nextState = "done";
+        }
+
+        return buildScreen(parent, availableUpdates, nextState, btnText);
+    }
+
+    private static Screen buildScreen(Screen parent, List<PendingUIUpdate> availableUpdates, String state, String statusText) {
+        ConfigCategory.Builder updatesCategory = ConfigCategory.createBuilder()
+                .name(Component.literal("Updates"));
+
+        // Main action button configuration row
+        updatesCategory.option(ButtonOption.createBuilder()
+                .name(Component.literal(statusText))
+                .available(!state.equals("locked")) // Disable if active downloads are processing
+                .action((screen, buttonOption) -> {
+                    if (state.equals("idle")) {
+                        UpdateManager.forceRefresh().whenComplete((res, err) -> {
+                            Minecraft.getInstance().execute(() -> Minecraft.getInstance().gui.setScreen(create(parent)));
+                        });
+                    }
+                    else if (state.equals("ready")) {
+                        buttonOption.setAvailable(false); // Instantly gray it out upon click
+                        downloadSelectedMods(parent, availableUpdates);
+                    }
+                    else if (state.equals("done")) applyAndRestart();
+                }).build());
+            
+        // --- SECURED DEDICATED APPLY BUTTON ---
+        boolean hasWaitingFiles = availableUpdates.stream().anyMatch(PendingUIUpdate::isDownloaded);
+        boolean downloadingGlobally = false;
+        for (String projectId : UpdateManager.AVAILABLE_UPDATES.keySet()) {
+            if (neelesh.easy_install.util.GlobalDownloadTracker.getState(projectId) == 1) {
+                downloadingGlobally = true;
+                break;
+            }
+        }
+
+        updatesCategory.option(ButtonOption.createBuilder()
+            .name(Component.literal("🚀 Apply Downloaded Mods & Restart"))
             .description(downloadingGlobally 
                 ? OptionDescription.of(Component.literal("§cDisabled: Downloads are currently running in the background."))
                 : OptionDescription.of(Component.literal("Click to verify and apply staged updates.")))
-            // Set the button's clickability state natively
             .available(!downloadingGlobally && hasWaitingFiles) 
             .action((screen, buttonOption) -> applyAndRestart())
-            .build();
+            .build());
         // ------------------------------------
 
         for (PendingUIUpdate update : availableUpdates) {
-            // Default to checked ONLY if it isn't already downloaded
             selectedMods.putIfAbsent(update.projectId(), !update.isDownloaded()); 
             
-            String label = update.isDownloaded() 
+            int globalState = neelesh.easy_install.util.GlobalDownloadTracker.getState(update.projectId());
+            boolean isQueued = update.isDownloaded() || globalState == 2;
+
+            String label = isQueued 
                 ? "§a[QUEUED] " + update.modName() 
                 : "📦 " + update.modName() + " (" + update.oldFilename() + " ➔ " + update.newFilename() + ")";
 
             var optionBuilder = Option.<Boolean>createBuilder()
                     .name(Component.literal(label))
                     .binding(true, () -> selectedMods.get(update.projectId()), val -> {
-                        if (!update.isDownloaded()) selectedMods.put(update.projectId(), val);
+                        if (!isQueued) selectedMods.put(update.projectId(), val);
                     })
                     .controller(TickBoxControllerBuilder::create);
 
-            // Visually disable the YACL tickbox if it is already queued!
-            if (update.isDownloaded()) {
-                optionBuilder.available(false);
+            if (isQueued || globalState == 1) {
+                optionBuilder.available(false); // Lock the checkmarks if processing or queued
             }
 
             updatesCategory.option(optionBuilder.build());
         }
 
+        // --- REST OF CATEGORIES REMAIN INTACT ---
         ConfigCategory settingsCategory = ConfigCategory.createBuilder()
                 .name(Component.literal("Settings"))
-                
-                // 1. Notifications Toggle
                 .option(Option.<Boolean>createBuilder()
                         .name(Component.literal("Enable Notifications"))
                         .binding(true, () -> ConfigManager.getConfig().showNotifications, val -> ConfigManager.getConfig().showNotifications = val)
                         .controller(TickBoxControllerBuilder::create)
                         .build())
-                        
-                // 2. Auto Check Mode
                 .option(Option.<ConfigManager.AutoCheckMode>createBuilder()
                         .name(Component.literal("Auto Check Mode"))
                         .binding(ConfigManager.AutoCheckMode.ALL, () -> ConfigManager.getConfig().autoCheckMode, val -> ConfigManager.getConfig().autoCheckMode = val)
                         .controller(opt -> EnumControllerBuilder.create(opt).enumClass(ConfigManager.AutoCheckMode.class))
                         .build())
-                        
-                // 3. NEW: Background Scan Interval (Integer Input)
                 .option(Option.<Integer>createBuilder()
                         .name(Component.literal("Background Scan Interval (Minutes)"))
-                        .description(dev.isxander.yacl3.api.OptionDescription.of(Component.literal("How often the mod checks for updates in the background. Requires game restart.")))
                         .binding(15, () -> ConfigManager.getConfig().scanIntervalMinutes, val -> ConfigManager.getConfig().scanIntervalMinutes = val)
                         .controller(dev.isxander.yacl3.api.controller.IntegerFieldControllerBuilder::create)
                         .build())
-                        
-                // 4. NEW: API Batch Size (Integer Input)
                 .option(Option.<Integer>createBuilder()
                         .name(Component.literal("API Batch Size"))
-                        .description(dev.isxander.yacl3.api.OptionDescription.of(Component.literal("How many mods to check at once. Lower this if you experience network timeouts or rate limits.")))
                         .binding(50, () -> ConfigManager.getConfig().apiBatchSize, val -> ConfigManager.getConfig().apiBatchSize = val)
                         .controller(dev.isxander.yacl3.api.controller.IntegerFieldControllerBuilder::create)
                         .build())
-                        
                 .build();
-        // --- TAB 3: MONITORED MODS ---
+
         ConfigCategory.Builder monitoredMods = ConfigCategory.createBuilder()
-                .name(Component.literal("Monitored Mods"))
-                .tooltip(Component.literal("Uncheck a mod to ignore it during MANUAL scans."));
+                .name(Component.literal("Monitored Mods"));
 
         try (Stream<Path> stream = Files.list(FabricLoader.getInstance().getGameDir().resolve("mods"))) {
             stream.filter(path -> path.toString().endsWith(".jar")).forEach(path -> {
@@ -239,16 +239,27 @@ public class UpdateScreen {
         int total = toDownload.size();
 
         for (PendingUIUpdate update : toDownload) {
-            DownloadManager.downloadMod(update.downloadUrl(), update.newFilename(), (percent, speedMBps) -> {
-                Minecraft.getInstance().execute(() -> {
-                    String progress = String.format("Downloading %s... %.0f%% (%.1f MB/s)", update.newFilename(), percent, speedMBps);
-                    Minecraft.getInstance().gui.setScreen(buildScreen(parent, availableUpdates, "downloading", progress));
-                });
+            neelesh.easy_install.util.GlobalDownloadTracker.setState(update.projectId(), 1);
+            String tempFilename = update.newFilename() + ".tmp";
+
+            DownloadManager.downloadMod(update.downloadUrl(), tempFilename, (percent, speedMBps) -> {
+                // Keep progress updated silently without triggering YACL screen rebuilds!
+                neelesh.easy_install.util.GlobalDownloadTracker.setProgress(update.projectId(), (float)(percent / 100.0));
             }).thenAccept(path -> {
-                StatusWriter.appendUpdate(update.oldFilename(), update.newFilename());
+                try {
+                    Path finalPath = path.getParent().resolve(update.newFilename());
+                    java.nio.file.Files.move(path, finalPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                    
+                    StatusWriter.appendUpdate(update.oldFilename(), update.newFilename());
+                    neelesh.easy_install.util.GlobalDownloadTracker.setState(update.projectId(), 2);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
                 if (completedCount.incrementAndGet() >= total) {
                     Minecraft.getInstance().execute(() -> {
-                        Minecraft.getInstance().gui.setScreen(buildScreen(parent, availableUpdates, "done", "Downloads Complete - RESTART GAME"));
+                        // Rebuild the final screen state once all downloads finish
+                        Minecraft.getInstance().gui.setScreen(create(parent));
                     });
                 }
             });
