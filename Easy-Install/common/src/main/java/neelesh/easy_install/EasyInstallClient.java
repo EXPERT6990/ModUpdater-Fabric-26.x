@@ -319,7 +319,7 @@ public class EasyInstallClient {
             connection.setRequestMethod("GET");
             connection.setConnectTimeout(5000);
             connection.setReadTimeout(5000);
-            
+
             int responseCode = connection.getResponseCode();
             if (responseCode != HttpURLConnection.HTTP_OK) {
                 EasyInstall.LOGGER.error("Failed to download file, server responded with: {}", responseCode);
@@ -328,25 +328,57 @@ public class EasyInstallClient {
 
             // 1. Get total file length from header
             long totalBytes = connection.getContentLengthLong();
-            
+
+            //         try (InputStream in = new BufferedInputStream(connection.getInputStream());
+            //              FileOutputStream out = new FileOutputStream(savePath)) {
+
+            //             byte[] buffer = new byte[8192]; // 8KB buffer size
+            //             int bytesRead;
+            //             long bytesWritten = 0;
+
+            //             // 2. Custom chunk loop replacing raw transferTo()
+            //             while ((bytesRead = in.read(buffer)) != -1) {
+            //                 out.write(buffer, 0, bytesRead);
+            //                 bytesWritten += bytesRead;
+
+            //                 // 3. Calculate and push progress to our tracking map
+            //                 if (totalBytes > 0) {
+            //                     float progress = (float) bytesWritten / totalBytes;
+            //                     // Map it directly by Slug so the UI can query it instantly!
+            //                     neelesh.easy_install.util.GlobalDownloadTracker.setProgress(projectSlug, progress);
+            // }
+            //             }
+            //         }
+// Inside downloadVersion, update your byte loop to look like this:
             try (InputStream in = new BufferedInputStream(connection.getInputStream());
                  FileOutputStream out = new FileOutputStream(savePath)) {
                 
-                byte[] buffer = new byte[8192]; // 8KB buffer size
+                byte[] buffer = new byte[8192];
                 int bytesRead;
                 long bytesWritten = 0;
 
-                // 2. Custom chunk loop replacing raw transferTo()
                 while ((bytesRead = in.read(buffer)) != -1) {
+                    // 1. THE KILL SWITCH INTERCEPTOR
+                    if (neelesh.easy_install.util.GlobalDownloadTracker.cancelRequested) {
+                        System.out.println("Download aborted by user: " + fileName);
+                        out.close(); // Close the file stream immediately
+                        in.close();  // Close the network stream
+                        
+                        // Delete the useless partial .tmp file
+                        java.nio.file.Files.deleteIfExists(java.nio.file.Paths.get(savePath));
+                        
+                        // Reset the state to IDLE (0)
+                        neelesh.easy_install.util.GlobalDownloadTracker.setState(projectSlug, 0);
+                        return; // Terminate the thread instantly
+                    }
+
                     out.write(buffer, 0, bytesRead);
                     bytesWritten += bytesRead;
 
-                    // 3. Calculate and push progress to our tracking map
                     if (totalBytes > 0) {
                         float progress = (float) bytesWritten / totalBytes;
-                        // Map it directly by Slug so the UI can query it instantly!
                         neelesh.easy_install.util.GlobalDownloadTracker.setProgress(projectSlug, progress);
-    }
+                    }
                 }
             }
             EasyInstall.LOGGER.info("Download complete: {}", savePath);

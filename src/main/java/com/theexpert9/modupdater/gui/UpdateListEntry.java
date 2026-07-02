@@ -1,15 +1,11 @@
 
 package com.theexpert9.modupdater.gui;
 
-import com.theexpert9.modupdater.util.DownloadManager;
-
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.ObjectSelectionList;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
-
-import java.nio.file.Files;
 
 public class UpdateListEntry extends ObjectSelectionList.Entry<UpdateListEntry> {
     public boolean isDownloaded = false;

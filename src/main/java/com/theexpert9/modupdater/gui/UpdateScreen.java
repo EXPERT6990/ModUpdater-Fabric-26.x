@@ -125,10 +125,28 @@ public class UpdateScreen {
                     }
                     else if (state.equals("done")) applyAndRestart();
                 }).build());
+
+        
             
         // --- SECURED DEDICATED APPLY BUTTON ---
         boolean hasWaitingFiles = availableUpdates.stream().anyMatch(PendingUIUpdate::isDownloaded);
         boolean downloadingGlobally = false;
+
+        // Add this right below your main action button in the updatesCategory
+        updatesCategory.option(ButtonOption.createBuilder()
+                .name(Component.literal("§c🛑 Cancel Active Downloads"))
+                .description(OptionDescription.of(Component.literal("Instantly stops all background network traffic and clears temporary files.")))
+                .available(downloadingGlobally) // Only clickable if downloads are running
+                .action((screen, buttonOption) -> {
+                    neelesh.easy_install.util.GlobalDownloadTracker.cancelRequested = true; // Pull the trigger!
+                    buttonOption.setAvailable(false);
+                    
+                    // Force a screen refresh to show everything reset back to IDLE
+                    Minecraft.getInstance().execute(() -> {
+                        Minecraft.getInstance().gui.setScreen(create(parent));
+                    });
+                }).build());
+        
         for (String projectId : UpdateManager.AVAILABLE_UPDATES.keySet()) {
             if (neelesh.easy_install.util.GlobalDownloadTracker.getState(projectId) == 1) {
                 downloadingGlobally = true;
@@ -240,7 +258,9 @@ public class UpdateScreen {
                 .filter(u -> selectedMods.getOrDefault(u.projectId(), false) && !u.isDownloaded())
                 .toList();
 
-        if (toDownload.isEmpty()) return;
+        if (toDownload.isEmpty())
+            return;
+        neelesh.easy_install.util.GlobalDownloadTracker.cancelRequested = false; // Reset the kill switch!
 
         AtomicInteger completedCount = new AtomicInteger(0);
         int total = toDownload.size();

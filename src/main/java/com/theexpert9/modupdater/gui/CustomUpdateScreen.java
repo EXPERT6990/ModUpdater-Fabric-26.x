@@ -1,11 +1,8 @@
 
 package com.theexpert9.modupdater.gui;
 
-//import com.theexpert9.modupdater.api.ModrinthClient;
-import com.theexpert9.modupdater.util.ConfigManager;
 import com.theexpert9.modupdater.util.DownloadManager;
 import com.theexpert9.modupdater.util.StatusWriter;
-
 import com.theexpert9.modupdater.util.UpdateManager;
 
 import net.fabricmc.loader.api.FabricLoader;
@@ -18,12 +15,8 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.security.MessageDigest;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
@@ -102,6 +95,18 @@ public class CustomUpdateScreen extends Screen {
             if (!this.isDownloading)
                 startDownload();
         }).bounds(panelX + panelWidth - 235, buttonY, 120, 20).build());
+
+        // Build the Cancel Button
+        Button cancelButton = Button.builder(Component.literal("§cStop Downloads"), button -> {
+            neelesh.easy_install.util.GlobalDownloadTracker.cancelRequested = true; // Pull the trigger!
+            this.isDownloading = false;
+            updateStatus("§cDownloads cancelled by user.");
+            button.active = false; // Disable itself after clicking
+        }).bounds(panelX + panelWidth - 365, buttonY, 120, 20).build();
+
+        // Only active if the tracker says a thread is running
+        cancelButton.active = isAnyDownloadActive();
+        this.addRenderableWidget(cancelButton);
 
         boolean downloadingGlobally = isAnyDownloadActive();
 
@@ -189,6 +194,7 @@ public class CustomUpdateScreen extends Screen {
 
         this.isDownloading = true;
         this.applyButton.active = false; // Immediately disable the apply button!
+        neelesh.easy_install.util.GlobalDownloadTracker.cancelRequested = false;
         
         AtomicInteger completedCount = new AtomicInteger(0);
         int total = toDownload.size();

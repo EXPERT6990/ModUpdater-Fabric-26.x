@@ -5,7 +5,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public class GlobalDownloadTracker {
     private static final ConcurrentHashMap<String, Integer> downloadStates = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<String, Float> downloadProgress = new ConcurrentHashMap<>();
-
+    public static volatile boolean cancelRequested = false;
+    
     public static void setState(String identifier, int state) {
         downloadStates.put(identifier, state);
     }
