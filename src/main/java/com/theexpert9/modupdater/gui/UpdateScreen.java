@@ -115,14 +115,6 @@ public class UpdateScreen {
         // --- NEW: DEDICATED APPLY BUTTON ---
         // If there is AT LEAST ONE downloaded mod waiting, show the Apply button!
         boolean hasWaitingFiles = availableUpdates.stream().anyMatch(PendingUIUpdate::isDownloaded);
-        // if (hasWaitingFiles && !state.equals("done")) {
-        //     updatesCategory.option(ButtonOption.createBuilder()
-        //             .name(Component.literal("🚀 Apply Downloaded Mods & Restart"))
-        //             .description(dev.isxander.yacl3.api.OptionDescription
-        //                     .of(Component.literal("You have updates waiting to be installed!")))
-        //             .action((screen, buttonOption) -> applyAndRestart())
-        //             .build());
-        // }
         
         boolean downloadingGlobally = false;
         for (String projectId : UpdateManager.AVAILABLE_UPDATES.keySet()) {
