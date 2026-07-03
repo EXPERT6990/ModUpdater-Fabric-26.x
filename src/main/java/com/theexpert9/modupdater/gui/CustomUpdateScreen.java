@@ -1,8 +1,6 @@
 
 package com.theexpert9.modupdater.gui;
 
-//import com.theexpert9.modupdater.api.ModrinthClient;
-import com.theexpert9.modupdater.util.ConfigManager;
 import com.theexpert9.modupdater.util.DownloadManager;
 import com.theexpert9.modupdater.util.StatusWriter;
 
@@ -18,12 +16,8 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.security.MessageDigest;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
