@@ -42,29 +42,38 @@ public class TitleScreenMixin extends Screen {
     	}
 
         // 1. We create a clean Local Class that formally extends Button
-        class UpdaterButton extends Button {
-            private final Identifier icon = Identifier.tryBuild("easy_install", "widget/get_button");
+		class UpdaterButton extends Button {
+			private final Identifier icon = Identifier.tryBuild("easy_install", "widget/get_button");
 
 			public UpdaterButton(int x, int y, int width, int height, Component message, OnPress onPress) {
 				// Because we extend Button, we safely have access to the protected DEFAULT_NARRATION
-				super(x,y, width, height, message, onPress, DEFAULT_NARRATION);
+				super(x, y, width, height, message, onPress, DEFAULT_NARRATION);
 			}
-            @Override
-            protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-                Identifier currentIcon = icon;
-                
-                // 3. Draw our custom icon perfectly centered inside the vanilla button background
-                graphics.blitSprite(RenderPipelines.GUI_TEXTURED, currentIcon, this.getX(), this.getY(), this.getWidth(), this.getHeight(), -1);
-            }
-        }
 
+			@Override
+			protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+				Identifier currentIcon = icon;
+
+				// 3. Draw our custom icon perfectly centered inside the vanilla button background
+				graphics.blitSprite(RenderPipelines.GUI_TEXTURED, currentIcon, this.getX(), this.getY(),
+						this.getWidth(), this.getHeight(), -1);
+			}
+		}
+
+		Button updaterButton;
         // Initialize our new local class
-        Button updaterButton = new UpdaterButton(quitButton.getX() + quitButton.getWidth() + 20 + 20 + 4, quitButton.getY(), 20, 20, Component.literal("Mod Updater"), button -> {
-			ProjectBrowser modBrowser = new ProjectBrowser(this, ProjectType.MOD);
-			Minecraft.getInstance().gui.setScreen((Screen) ((Object) modBrowser));
-		});
-
+    	if (quitButton.getMessage().getString().equals("Mods")) {
+			updaterButton = new UpdaterButton(quitButton.getX() + quitButton.getWidth() - 4 * 24 - 20, quitButton.getY(), 20,
+					20, Component.literal("Mod Updater"), button -> {
+						ProjectBrowser modBrowser = new ProjectBrowser(this, ProjectType.MOD);
+						Minecraft.getInstance().gui.setScreen((Screen) ((Object) modBrowser));
+					});
+		} else {
+			updaterButton = new UpdaterButton(quitButton.getX() + quitButton.getWidth() + 20 + 8, quitButton.getY(), 20, 20, Component.literal("Mod Updater"), button -> {
+				ProjectBrowser modBrowser = new ProjectBrowser(this, ProjectType.MOD);
+				Minecraft.getInstance().gui.setScreen((Screen) ((Object) modBrowser));
+			});
+		}
         updaterButton.setTooltip(Tooltip.create(Component.literal("Get Mods")));
-        
         this.addRenderableWidget(updaterButton);
     }}
