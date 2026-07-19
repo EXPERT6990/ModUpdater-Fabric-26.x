@@ -24,6 +24,6 @@ Thumbs.db
 logs/
 debug.log
 crash-reports/
-
+ModUpdater-Fabric-26.x.code-workspace
 # Temporary Mod Updater files (Just in case you run the game in dev mode)
 .pending_updates/
