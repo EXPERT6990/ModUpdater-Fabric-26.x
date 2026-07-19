@@ -27,3 +27,4 @@ crash-reports/
 
 # Temporary Mod Updater files (Just in case you run the game in dev mode)
 .pending_updates/
+ModUpdater*
