@@ -119,6 +119,14 @@ public class ProjectBrowser extends Screen {
         settingsButton.setPosition(width - 30, 0);
         settingsButton.setTooltip(Tooltip.create(Component.nullToEmpty("Settings")));
         this.addWidget(settingsButton);
+        
+        Button infoButton = Button.builder(Component.nullToEmpty("ℹ"), button -> {
+        }).build();
+        infoButton.setSize(20, 20);
+        infoButton.setPosition(width - 55, 0);
+        infoButton.active = false;
+        infoButton.setTooltip(Tooltip.create(Component.nullToEmpty("REQUIRE APPLY AND RESTART FROM UPDATE SCREEN TO APPLY MODS, Or, Manually Move mods From /config/modupdater/downloads to /mods. (Bug Fix - Mod Files Corrupted)")));
+        this.addWidget(infoButton);
 
         for (int i = 0; i < EasyInstallClient.getRowsOnPage(); i++) {
             int finalI = i;
@@ -129,7 +137,6 @@ public class ProjectBrowser extends Screen {
                 minecraft.getTextureManager().register(ICON_TEXTURE_ID[finalI], texture);
             });
         }
-        //this.addWidget(updateScreenButton);
         this.addWidget(showPerPage);
         this.addWidget(sortButton);
         String text;
