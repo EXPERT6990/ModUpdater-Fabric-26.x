@@ -346,82 +346,85 @@ public class EasyInstallClient {
             }
             boolean IsLoaded = false;
             EasyInstall.LOGGER.info("Download complete: {}", savePath);
-            // Check if the downloaded jar's mod id is already loaded by Fabric. If so, delete the jar.
-            try {
-                String modId = null;
-                try (java.util.jar.JarFile jf = new java.util.jar.JarFile(savePath)) {
-                    java.util.jar.JarEntry entry = jf.getJarEntry("fabric.mod.json");
-                    if (entry != null) {
-                        try (InputStream is = jf.getInputStream(entry);
-                             java.io.InputStreamReader isr = new java.io.InputStreamReader(is)) {
-                            com.google.gson.JsonElement el = com.google.gson.JsonParser.parseReader(isr);
-                            if (el != null && el.isJsonObject()) {
-                                com.google.gson.JsonObject obj = el.getAsJsonObject();
-                                if (obj.has("id") && obj.get("id").isJsonPrimitive()) {
-                                    modId = obj.get("id").getAsString();
+
+            if (projectType == ProjectType.MOD) {
+                // Check if the downloaded jar's mod id is already loaded by Fabric. If so, delete the jar.
+                try {
+                    String modId = null;
+                    try (java.util.jar.JarFile jf = new java.util.jar.JarFile(savePath)) {
+                        java.util.jar.JarEntry entry = jf.getJarEntry("fabric.mod.json");
+                        if (entry != null) {
+                            try (InputStream is = jf.getInputStream(entry);
+                                 java.io.InputStreamReader isr = new java.io.InputStreamReader(is)) {
+                                com.google.gson.JsonElement el = com.google.gson.JsonParser.parseReader(isr);
+                                if (el != null && el.isJsonObject()) {
+                                    com.google.gson.JsonObject obj = el.getAsJsonObject();
+                                    if (obj.has("id") && obj.get("id").isJsonPrimitive()) {
+                                        modId = obj.get("id").getAsString();
+                                    }
                                 }
                             }
                         }
+                    } catch (IOException ignored) {
                     }
-                } catch (IOException ignored) {
+
+                    if (modId != null && !modId.isEmpty()) {
+                            if (FabricLoader.getInstance().isModLoaded(modId)) {
+                                IsLoaded = true;
+                                // delete file
+                                try {
+                                    java.nio.file.Files.deleteIfExists(java.nio.file.Paths.get(savePath));
+                                    EasyInstall.LOGGER.info("Deleted downloaded mod '{}' because it's already loaded.", modId);
+                                } catch (IOException e) {
+                                    EasyInstall.LOGGER.error("Failed to delete already-loaded mod jar: {}", e.getMessage());
+                                }
+                            } else EasyInstall.LOGGER.info("Mod Is Not Loaded : {}",modId);
+                    } else EasyInstall.LOGGER.info(modId);
+                } catch (Exception e) {
+                    // ignore any problems with checking/removal
+                }
+                File downloadJsonFile = Paths.get(getGameDir(), "config", "modupdater", "downloads", "download.json").toFile();
+                if (downloadJsonFile.getParentFile() != null) {
+                    downloadJsonFile.getParentFile().mkdirs();
                 }
 
-                if (modId != null && !modId.isEmpty()) {
-                        if (FabricLoader.getInstance().isModLoaded(modId)) {
-                            IsLoaded = true;
-                            // delete file
-                            try {
-                                java.nio.file.Files.deleteIfExists(java.nio.file.Paths.get(savePath));
-                                EasyInstall.LOGGER.info("Deleted downloaded mod '{}' because it's already loaded.", modId);
-                            } catch (IOException e) {
-                                EasyInstall.LOGGER.error("Failed to delete already-loaded mod jar: {}", e.getMessage());
+                // Build or update JSON array of save paths
+                com.google.gson.JsonArray pathArray = new com.google.gson.JsonArray();
+                if (downloadJsonFile.exists()) {
+                    try (java.io.FileReader fr = new java.io.FileReader(downloadJsonFile)) {
+                        com.google.gson.JsonElement existing = com.google.gson.JsonParser.parseReader(fr);
+                        if (existing != null && existing.isJsonObject()) {
+                            com.google.gson.JsonObject obj = existing.getAsJsonObject();
+                            if (obj.has("savePath") && obj.get("savePath").isJsonArray()) {
+                                pathArray = obj.getAsJsonArray("savePath");
+                            } else if (obj.has("savePath") && obj.get("savePath").isJsonPrimitive()) {
+                                // migrate single property to array
+                                pathArray = new com.google.gson.JsonArray();
+                                pathArray.add(obj.get("savePath").getAsString());
                             }
-                        } else EasyInstall.LOGGER.info("Mod Is Not Loaded : {}",modId);
-                } else EasyInstall.LOGGER.info(modId);
-            } catch (Exception e) {
-                // ignore any problems with checking/removal
-            }
-            File downloadJsonFile = Paths.get(getGameDir(), "config", "modupdater", "downloads", "download.json").toFile();
-            if (downloadJsonFile.getParentFile() != null) {
-                downloadJsonFile.getParentFile().mkdirs();
-            }
-
-            // Build or update JSON array of save paths
-            com.google.gson.JsonArray pathArray = new com.google.gson.JsonArray();
-            if (downloadJsonFile.exists()) {
-                try (java.io.FileReader fr = new java.io.FileReader(downloadJsonFile)) {
-                    com.google.gson.JsonElement existing = com.google.gson.JsonParser.parseReader(fr);
-                    if (existing != null && existing.isJsonObject()) {
-                        com.google.gson.JsonObject obj = existing.getAsJsonObject();
-                        if (obj.has("savePath") && obj.get("savePath").isJsonArray()) {
-                            pathArray = obj.getAsJsonArray("savePath");
-                        } else if (obj.has("savePath") && obj.get("savePath").isJsonPrimitive()) {
-                            // migrate single property to array
-                            pathArray = new com.google.gson.JsonArray();
-                            pathArray.add(obj.get("savePath").getAsString());
                         }
+                    } catch (IOException | com.google.gson.JsonSyntaxException ignored) {
                     }
-                } catch (IOException | com.google.gson.JsonSyntaxException ignored) {
                 }
-            }
 
-            // Add new path if not already present
-            boolean present = false;
-            for (com.google.gson.JsonElement e : pathArray) {
-                if (e.isJsonPrimitive() && savePath.equals(e.getAsString())) {
-                    present = true;
-                    break;
+                // Add new path if not already present
+                boolean present = false;
+                for (com.google.gson.JsonElement e : pathArray) {
+                    if (e.isJsonPrimitive() && savePath.equals(e.getAsString())) {
+                        present = true;
+                        break;
+                    }
                 }
-            }
-            if (!present && !IsLoaded) pathArray.add(savePath);
+                if (!present && !IsLoaded) pathArray.add(savePath);
 
-            com.google.gson.JsonObject downloadInfo = new com.google.gson.JsonObject();
-            downloadInfo.add("savePath", pathArray);
+                com.google.gson.JsonObject downloadInfo = new com.google.gson.JsonObject();
+                downloadInfo.add("savePath", pathArray);
 
-            try (FileWriter writer = new FileWriter(downloadJsonFile)) {
-                new com.google.gson.GsonBuilder().setPrettyPrinting().create().toJson(downloadInfo, writer);
-            } catch (IOException e) {
-                e.printStackTrace();
+                try (FileWriter writer = new FileWriter(downloadJsonFile)) {
+                    new com.google.gson.GsonBuilder().setPrettyPrinting().create().toJson(downloadInfo, writer);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -720,7 +723,10 @@ public class EasyInstallClient {
     }
 
     public static Path getSavePath(ProjectType projectType, String fileName) {
-        return Paths.get(getGameDir(),"config","modupdater","downloads", fileName);
+        if (projectType == ProjectType.MOD) {
+            return Paths.get(getGameDir(), "config", "modupdater", "downloads", fileName);
+        }
+        return Paths.get(getDir(projectType), fileName);
     }
 
     public static String getDir(ProjectType projectType) {
