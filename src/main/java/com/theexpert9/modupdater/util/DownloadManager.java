@@ -21,7 +21,7 @@ public class DownloadManager {
 
     private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
             .followRedirects(HttpClient.Redirect.ALWAYS)
-            .executor(DOWNLOAD_POOL)
+            //.executor(DOWNLOAD_POOL)
             .build();
     public static void shutdown() {
         if (DOWNLOAD_POOL != null && !DOWNLOAD_POOL.isShutdown()) {
@@ -65,6 +65,7 @@ public class DownloadManager {
     }
 
     public static CompletableFuture<Path> downloadMod(String url, String filename, DownloadProgressListener listener) {
+        neelesh.easy_install.util.GlobalDownloadTracker.add();
         return CompletableFuture.supplyAsync(() -> {
             try {
                 Path targetFile = getPendingUpdatesDir().resolve(filename);
@@ -102,8 +103,10 @@ public class DownloadManager {
                             }
                         }
                     }
+                    neelesh.easy_install.util.GlobalDownloadTracker.remove();
                     return targetFile;
                 } else {
+                    neelesh.easy_install.util.GlobalDownloadTracker.remove();
                     throw new RuntimeException("Download failed. HTTP " + response.statusCode());
                 }
             } catch (Exception e) {

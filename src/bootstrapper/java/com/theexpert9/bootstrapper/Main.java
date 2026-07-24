@@ -111,7 +111,7 @@ public class Main {
             
             // Clean up the .pending_updates folder
             deleteDirectory(pendingDir.toFile());
-
+            Files.deleteIfExists(statusFile);
             // 2. Process Brand New Mods (Easy-Install)
             MovedNewMods(modsDir);
 
@@ -171,6 +171,6 @@ public class Main {
                 deleteDirectory(file);
             }
         }
-        //directoryToBeDeleted.delete();
+        directoryToBeDeleted.delete();
     }
 }

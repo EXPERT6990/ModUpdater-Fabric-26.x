@@ -6,6 +6,9 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+
+import neelesh.easy_install.util.GlobalDownloadTracker;
+
 import com.google.gson.Gson;
 
 import net.fabricmc.loader.api.FabricLoader;
@@ -109,6 +112,7 @@ public class EasyInstallClient {
     }
 
     public static void downloadVersion(String slug, ProjectType projectType, boolean filteredByGameVersion) {
+        GlobalDownloadTracker.add();
         String response = getVersions(slug, projectType, true);
         if (!filteredByGameVersion && JsonParser.parseString(response).getAsJsonArray().isEmpty()) {
             response = getVersions(slug, projectType, false);
@@ -146,6 +150,7 @@ public class EasyInstallClient {
                 e.printStackTrace();
             }
         }
+        GlobalDownloadTracker.remove();
     }
 
     public static ProjectType getProjectType(String id) {
@@ -300,21 +305,8 @@ public class EasyInstallClient {
 
     }
 
-    // public static void downloadVersion(URL url, String fileName, ProjectType projectType) {
-    //     String savePath = getSavePath(projectType, fileName).toString();
-    //     try {
-    //         try (InputStream in = new BufferedInputStream(url.openStream());
-    //              FileOutputStream out = new FileOutputStream(savePath)) {
-    //             in.transferTo(out);
-    //         }
-    //         EasyInstall.LOGGER.info("Download complete: {}", savePath);
-    //     } catch (IOException e) {
-    //         e.printStackTrace();
-    //     }
-
-    // }
-
     public static void downloadVersion(URL url, String fileName, ProjectType projectType , String projectSlug) {
+        GlobalDownloadTracker.add();
         String savePath = getSavePath(projectType, fileName).toString();
         HttpURLConnection connection = null;
         try {
@@ -438,6 +430,7 @@ public class EasyInstallClient {
                 connection.disconnect();
             }
         }
+        GlobalDownloadTracker.remove();
     }
     
     private static void initializeProject(String urlString, ProjectType projectType) {

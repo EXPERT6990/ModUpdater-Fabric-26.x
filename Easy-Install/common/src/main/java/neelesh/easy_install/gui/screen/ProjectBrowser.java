@@ -124,7 +124,7 @@ public class ProjectBrowser extends Screen {
         }).build();
         infoButton.setSize(20, 20);
         infoButton.setPosition(width - 55, 0);
-        infoButton.active = false;
+        infoButton.active = true;
         infoButton.setTooltip(Tooltip.create(Component.nullToEmpty("REQUIRE APPLY AND RESTART FROM UPDATE SCREEN TO APPLY MODS, Or, Manually Move mods From /config/modupdater/downloads to /mods. (Bug Fix - Mod Files Corrupted)")));
         this.addWidget(infoButton);
 

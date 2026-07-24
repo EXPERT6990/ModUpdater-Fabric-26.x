@@ -2,11 +2,10 @@
 // //MODUPDATER MIXIN
 package com.theexpert9.modupdater.mixin;
 
-import com.llamalad7.mixinextras.lib.apache.commons.ObjectUtils.Null;
-import com.theexpert9.modupdater.gui.ConfirmApplyScreen;
 import com.theexpert9.modupdater.gui.CustomUpdateScreen;
 import com.theexpert9.modupdater.util.DownloadManager;
 
+import neelesh.easy_install.util.GlobalDownloadTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
@@ -75,7 +74,7 @@ public abstract class TitleScreenMixin extends Screen {
             }
         }
 
-        Button applyButton = Button.builder(Component.literal("Apply Changes"), button -> {
+        Button applyButton = Button.builder(Component.literal("Apply Mods"), button -> {
             if (this.minecraft == null) {
                 return;
             }
@@ -104,6 +103,7 @@ public abstract class TitleScreenMixin extends Screen {
                 }
             }
         }).bounds(applySide.getX(), applySide.getY() + 24, 100, 20).build();
+        applyButton.active = GlobalDownloadTracker.IsReadyToApply() && isReady();
         this.addRenderableWidget(applyButton);
 
         Button updaterButton = new UpdaterButton(quitButton.getX() + quitButton.getWidth() + 4, quitButton.getY(), 20, 20, Component.literal("Mod Updater"), button -> {
@@ -114,5 +114,14 @@ public abstract class TitleScreenMixin extends Screen {
 
         updaterButton.setTooltip(Tooltip.create(Component.literal("Check for Mod Updates")));
         this.addRenderableWidget(updaterButton);
+    }
+
+    private boolean isReady()
+    {
+        java.nio.file.Path pendingDir = DownloadManager.getPendingUpdatesDir();
+
+            if (Files.exists(pendingDir.resolve("update_status.json")) || Files.exists(pendingDir.getParent().resolve("downloads").resolve("download.json")))
+                return true;
+            else return false;
     }
 }

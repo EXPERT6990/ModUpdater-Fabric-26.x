@@ -260,30 +260,6 @@ public class CustomUpdateScreen extends Screen {
         }
     }
 
-    //public static void apply() throws FileNotFoundException {
-    //     if(Files.exists(DownloadManager.getPendingUpdatesDir().resolve("pending_updates.json"), null) || Files.exists(DownloadManager.getPendingUpdatesDir().getParent().resolve("downloads").resolve("downloads.json"), null))
-    //         try {
-    //         Path pendingDir = DownloadManager.getPendingUpdatesDir();
-    //         Path updaterPath = pendingDir.resolve("updater.jar");
-    //         try (InputStream is = CustomUpdateScreen.class.getResourceAsStream("/assets/modupdater/updater.jar")) {
-    //             if (is != null)
-    //                 Files.copy(is, updaterPath, StandardCopyOption.REPLACE_EXISTING);
-    //             else
-    //                 return;
-    //         }
-    //         long pid = ProcessHandle.current().pid();
-    //         String pendingPath = pendingDir.toAbsolutePath().toString();
-    //         String modsPath = FabricLoader.getInstance().getGameDir().resolve("mods").toAbsolutePath().toString();
-    //         String javaPath = ProcessHandle.current().info().command().orElse("java");
-    //         Runtime.getRuntime().exec(new String[] { javaPath, "-jar", updaterPath.toAbsolutePath().toString(),
-    //                 String.valueOf(pid), modsPath, pendingPath });
-    //     } catch (Exception e) {
-    //         e.printStackTrace();
-    //     }
-    //     else
-    //         throw new FileNotFoundException();
-    // }
-
     private void updateStatus(String msg) {
         if (this.minecraft != null) {
             this.minecraft.execute(() -> {

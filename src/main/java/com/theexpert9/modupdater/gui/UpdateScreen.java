@@ -288,7 +288,7 @@ public class UpdateScreen {
             String javaBinaryPath = ProcessHandle.current().info().command().orElse("java");
 
             Runtime.getRuntime().exec(new String[]{
-                    javaBinaryPath, "-jar", updaterPath.toAbsolutePath().toString(), String.valueOf(pid), modsPath
+                    javaBinaryPath, "-jar", updaterPath.toAbsolutePath().toString(), String.valueOf(pid), pendingDir.toAbsolutePath().toString(), modsPath
             });
 
             Minecraft.getInstance().stop();
