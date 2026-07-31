@@ -69,7 +69,8 @@ public class DownloadManager {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 Path targetFile = getPendingUpdatesDir().resolve(filename);
-                HttpRequest request = HttpRequest.newBuilder().uri(URI.create(url)).GET().build();
+                HttpRequest request = HttpRequest.newBuilder().header("User-Agent", "TheExpert9/ModUpdaterFabric (https://modrinth.com/mod/modupdaterfabric/)")
+                .header("Agent-URL","https://modrinth.com/mod/modupdaterfabric/").uri(URI.create(url)).GET().build();
 
                 // Get the input stream instead of saving directly to file
                 HttpResponse<InputStream> response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofInputStream());

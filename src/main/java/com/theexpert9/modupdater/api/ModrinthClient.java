@@ -11,7 +11,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 public class ModrinthClient {
-    private static final String USER_AGENT = "ModUpdater/1.0.0 (https://github.com/TheExpert9/ModUpdater)";
+    private static final String USER_AGENT = "TheExpert9/ModUpdaterFabric (https://modrinth.com/mod/modupdaterfabric/)";
     private static final HttpClient HTTP_CLIENT = HttpClient.newHttpClient();
     private static final Gson GSON = new Gson();
 
@@ -49,6 +49,7 @@ public class ModrinthClient {
                 .uri(URI.create(url))
                 .header("User-Agent", USER_AGENT)
                 .header("Content-Type", "application/json")
+                .header("Agent-URL","https://modrinth.com/mod/modupdaterfabric/")
                 .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
                 .build();
 
@@ -77,6 +78,7 @@ public class ModrinthClient {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
                 .header("User-Agent", USER_AGENT)
+                .header("Agent-URL","https://modrinth.com/mod/modupdaterfabric/")
                 .GET()
                 .build();
 

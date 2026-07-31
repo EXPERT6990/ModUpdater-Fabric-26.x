@@ -83,19 +83,6 @@ public class ModUpdater implements ClientModInitializer {
             });
         });
 
-        // ClientTickEvents.END_CLIENT_TICK.register(client -> {
-        //     while (openUpdateScreenKey.consumeClick()) {
-        //         if (client.gui.screen() == null) {
-        //             if (FabricLoader.getInstance().isModLoaded("yet-another-config-lib_v3")
-        //                     && FabricLoader.getInstance().isModLoaded("modmenu")) {
-        //                 client.gui.setScreen(UpdateScreen.create(null));
-        //             }
-        //             else {
-        //                 client.gui.setScreen(new CustomUpdateScreen(null));
-        //             }
-        //         }
-        //     }
-        // });
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (openUpdateScreenKey.consumeClick()) {
                 if (client.gui.screen() == null) {
@@ -117,8 +104,11 @@ public class ModUpdater implements ClientModInitializer {
             // 1. Kill the active download workers
             DownloadManager.shutdown();
             
-             // 2. Kill the 15-minute background update timer
+            // 2. Kill the 15-minute background update timer
             UpdateManager.shutdown();
+            
+             // 3. Kill ALl Connection of Easy-Install
+             neelesh.easy_install.util.HttpClientManager.closeAll();
         });
     }
     

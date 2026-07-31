@@ -7,7 +7,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
-import neelesh.easy_install.util.GlobalDownloadTracker;
+import neelesh.easy_install.util.*;
 
 import com.google.gson.Gson;
 
@@ -158,6 +158,7 @@ public class EasyInstallClient {
         try {
             URL url = URI.create(urlString).toURL();
             HttpURLConnection httpURLConnection = (HttpURLConnection) url.openConnection();
+            HttpClientManager.add(httpURLConnection);
             httpURLConnection.setRequestMethod("GET");
             int responseCode = httpURLConnection.getResponseCode();
             if (responseCode == httpURLConnection.HTTP_OK) {
@@ -176,7 +177,9 @@ public class EasyInstallClient {
                     default -> null;
                 };
             }
+            HttpClientManager.remove(httpURLConnection);
             httpURLConnection.disconnect();
+
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -311,6 +314,7 @@ public class EasyInstallClient {
         HttpURLConnection connection = null;
         try {
             connection = (HttpURLConnection) url.openConnection();
+            HttpClientManager.add(connection);
             connection.setRequestMethod("GET");
             connection.setConnectTimeout(5000);
             connection.setReadTimeout(5000);
@@ -430,6 +434,7 @@ public class EasyInstallClient {
             e.printStackTrace();
         } finally {
             if (connection != null) {
+                HttpClientManager.remove(connection);
                 connection.disconnect();
             }
         }
