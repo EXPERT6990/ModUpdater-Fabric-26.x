@@ -316,19 +316,6 @@ public class ProjectBrowser extends Screen {
                 authors[i].extractRenderState(context, mouseX, mouseY, delta);
                 this.addWidget(authors[i]);
                 context.textWithWordWrap(font, FormattedText.of(INFO[i].getDescription().replace("\n", "")), 55, firstRowY + (int) scrollAmount + i * 50 + 15, width - 65, CommonColors.WHITE, false);
-                // installButtons[i].setY(firstRowY + (int) scrollAmount + i * 50 - 3);
-                // if (isGloballyDownloading || INFO[i].isInstalling()) {
-                //     float currentProgress = neelesh.easy_install.util.GlobalDownloadTracker.getProgress(currentSlug) * 100.0f;
-                //     // Formats perfectly as "Installing (45%)"
-                //     installButtons[i].setMessage(Component.nullToEmpty(String.format("Installing (%d%%)", (int) currentProgress)));
-                // } else if (INFO[i].isInstalled()) {
-                //     installButtons[i].setMessage(Component.nullToEmpty("Installed"));
-                // } else if (INFO[i].isUpdated()) {
-                //     installButtons[i].setMessage(Component.nullToEmpty("Install"));
-                // } else {
-                //     installButtons[i].setMessage(Component.nullToEmpty("Update"));
-                // }
-                // installButtons[i].active = !INFO[i].isInstalled() && !INFO[i].isInstalling();
 
                 installButtons[i].setY(firstRowY + (int) scrollAmount + i * 50 - 3);
                 

@@ -11,8 +11,10 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.CommonColors;
 
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -177,33 +179,36 @@ public class CustomUpdateScreen extends Screen {
         this.statusMessage = "Displaying " + count + " available updates.";
     }
 
-
     private void startDownload() {
         List<UpdateListEntry> toDownload = this.listWidget.getCheckedEntries();
-        if (toDownload.isEmpty()) return;
+        if (toDownload.isEmpty())
+            return;
 
         this.isDownloading = true;
         this.applyButton.active = false; // Immediately disable the apply button!
-        
+
         AtomicInteger completedCount = new AtomicInteger(0);
         int total = toDownload.size();
 
         for (UpdateListEntry update : toDownload) {
             // Mark the unique mod ID as actively downloading inside our memory tracker
             neelesh.easy_install.util.GlobalDownloadTracker.setState(update.projectId, 1);
-            
-            // Append a temporary file extension name to mask partial network files from the path validator
+
+            // Append a temporary file extension name to mask partial network files from the
+            // path validator
             String tempFilename = update.newFilename + ".tmp";
 
             DownloadManager.downloadMod(update.downloadUrl, tempFilename, (percent, speedMBps) -> {
-                neelesh.easy_install.util.GlobalDownloadTracker.setProgress(update.projectId, (float)(percent / 100.0));
+                neelesh.easy_install.util.GlobalDownloadTracker.setProgress(update.projectId,
+                        (float) (percent / 100.0));
                 updateStatus(String.format("Downloading...."));
             }).thenAccept(path -> {
                 try {
-                    // Rename the verified file container back to a stable .jar once completely downloaded
+                    // Rename the verified file container back to a stable .jar once completely
+                    // downloaded
                     Path finalPath = path.getParent().resolve(update.newFilename);
                     java.nio.file.Files.move(path, finalPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-                    
+
                     StatusWriter.appendUpdate(update.oldFilename, update.newFilename);
                     neelesh.easy_install.util.GlobalDownloadTracker.setState(update.projectId, 2); // Completed
                 } catch (Exception e) {
@@ -215,21 +220,21 @@ public class CustomUpdateScreen extends Screen {
                     this.minecraft.execute(() -> {
                         this.isDownloading = false;
                         this.readyToApply = !getPendingDownloadedFiles().isEmpty();
-                        this.applyButton.active = this.readyToApply; 
+                        this.applyButton.active = this.readyToApply;
                         updateStatus("Downloads Complete! Click 'Apply Changes' to complete installation.");
                     });
                 }
             });
         }
     }
-    
-    
+
     private boolean isAnyDownloadActive() {
         // If the local screen says it's downloading, trust it immediately
         if (this.isDownloading)
             return true;
 
-        // Scan all available cached updates to check their thread states in the global tracker
+        // Scan all available cached updates to check their thread states in the global
+        // tracker
         for (String projectId : UpdateManager.AVAILABLE_UPDATES.keySet()) {
             if (neelesh.easy_install.util.GlobalDownloadTracker.getState(projectId) == 1) {
                 return true;
@@ -304,14 +309,13 @@ public class CustomUpdateScreen extends Screen {
         return pending;
     }
 
-
     @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         super.extractRenderState(graphics, mouseX, mouseY, partialTick);
 
-        int panelX = 40;
+        int panelX = 0;
         int panelY = 40;
-        int panelWidth = this.width - 80;
+        int panelWidth = this.width;
         int panelHeight = this.height - 90;
         int listWidth = (int) (panelWidth * 0.60);
         int sidePanelX = panelX + listWidth;
@@ -319,12 +323,12 @@ public class CustomUpdateScreen extends Screen {
         // Live status updating! If the manager is scanning, show its live status. Otherwise, show our local message.
         String displayStatus = UpdateManager.AVAILABLE_UPDATES.isEmpty() ? UpdateManager.currentStatus
                 : this.statusMessage;
-        graphics.text(this.font, Component.literal(displayStatus), panelX + 100, panelY + 10, 0xFFFFAA00, false);
+        graphics.text(this.font, Component.literal(displayStatus), panelX + 150, panelY + 10, 0xFFFFAA00, false);
 
-        graphics.fill(panelX, panelY, panelX + panelWidth, panelY + panelHeight, 0x99000000);
-        graphics.fill(sidePanelX, panelY, sidePanelX + 1, panelY + panelHeight, 0x55FFFFFF);
+        //graphics.fill(panelX, panelY, panelX + panelWidth, panelY + panelHeight, CommonColors.WHITE);
+        //graphics.fill(sidePanelX, panelY, sidePanelX + 1, panelY + panelHeight, CommonColors.GRAY);
 
-        graphics.text(this.font, Component.literal("Mod Updater"), panelX + 10, panelY + 10, 0xFFFFFFFF, true);
+        graphics.text(this.font, Component.literal("Mod Updater :"), panelX + 75, panelY + 10, 0xFFFFFFFF, true);
         //graphics.text(this.font, Component.literal(this.statusMessage), panelX + 100, panelY + 10, 0xFFFFAA00, false);
 
         UpdateListEntry viewedEntry = this.listWidget.getSelected();
@@ -336,10 +340,32 @@ public class CustomUpdateScreen extends Screen {
             graphics.text(this.font, Component.literal("File: " + viewedEntry.newFilename), sidePanelX + 10,
                     panelY + 45, 0xFFAAAAAA, false);
 
-            graphics.text(this.font, Component.literal("[ Mod Icon Area ]"), sidePanelX + 10, panelY + 80, 0xFF555555,
-                    false);
-            graphics.text(this.font, Component.literal("Changelog data coming soon..."), sidePanelX + 10, panelY + 100,
-                    0xFF555555, false);
+            // graphics.text(this.font, Component.literal("[ Mod Icon Area ]"), sidePanelX + 10, panelY + 80, 0xFF555555,
+            //         false);
+            String desc = "<Not Available>";
+            try (java.util.jar.JarFile jf = new java.util.jar.JarFile(FabricLoader.getInstance().getGameDir().toString() + "/mods/" + viewedEntry.oldFilename)) {
+                        java.util.jar.JarEntry entry = jf.getJarEntry("fabric.mod.json");
+                        if (entry != null) {
+                            try (InputStream is = jf.getInputStream(entry);
+                                 java.io.InputStreamReader isr = new java.io.InputStreamReader(is)) {
+                                com.google.gson.JsonElement el = com.google.gson.JsonParser.parseReader(isr);
+                                if (el != null && el.isJsonObject()) {
+                                    com.google.gson.JsonObject obj = el.getAsJsonObject();
+                                    if (obj.has("id") && obj.get("id").isJsonPrimitive()) {
+                                        desc = obj.get("description").getAsString();
+                                    }
+                                }
+                            }
+                        }
+                    } catch (IOException ignored) {
+                    }
+
+            int descWrapWidth = Math.max(80, this.width - sidePanelX - 20);
+            int descY = panelY + 80;
+            for (var line : this.font.split(Component.literal(desc), descWrapWidth)) {
+                graphics.text(this.font, line, sidePanelX + 10, descY, 0xFF555555, false);
+                descY += 9;
+            }
         } else {
             graphics.text(this.font, Component.literal("Select a mod to view details."), sidePanelX + 10, panelY + 10,
                     0xFFAAAAAA, false);

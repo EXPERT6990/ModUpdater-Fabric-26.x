@@ -1,24 +1,27 @@
 package com.theexpert9.modupdater.gui;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.ObjectSelectionList;
 import java.util.List;
 
 public class UpdateListWidget extends ObjectSelectionList<UpdateListEntry> {
-    
+
     public UpdateListWidget(Minecraft client, int width, int height, int y0, int itemHeight) {
         super(client, width, height, y0, itemHeight);
     }
 
-    public void addRealUpdate(String projectId, String modName, /*String author, String description, String changelog,*/ String oldFile, String newFile, String url, String oldVer, String newVer, boolean isDownloaded) {
-        UpdateListEntry entry = new UpdateListEntry(this, projectId, modName,/*  author, description, changelog,*/ oldFile, newFile, url, oldVer, newVer);
+    public void addRealUpdate(String projectId, String modName,
+            /* String author, String description, String changelog, */ String oldFile, String newFile, String url,
+            String oldVer, String newVer, boolean isDownloaded) {
+        UpdateListEntry entry = new UpdateListEntry(this, projectId, modName,
+                /* author, description, changelog, */ oldFile, newFile, url, oldVer, newVer);
         entry.isDownloaded = isDownloaded;
         if (isDownloaded) {
             entry.selected = false; // Force deselect so it isn't in the download queue
         }
         this.addEntry(entry);
     }
-
 
     // Helper for the Select All / None buttons
     public void setAllSelected(boolean state) {
@@ -38,12 +41,22 @@ public class UpdateListWidget extends ObjectSelectionList<UpdateListEntry> {
     }
 
     @Override
+    protected void extractListBackground(GuiGraphicsExtractor graphics) {
+        graphics.fill(this.getX(), this.getY(), this.getRight(), this.getBottom(), 0x00000000);
+    }
+
+    @Override
+    protected void extractListSeparators(GuiGraphicsExtractor graphics) {
+        // Keep the list panel visually transparent to match the rest of the custom UI.
+    }
+
+    @Override
     protected int scrollBarX() {
         return this.getX() + this.width - 6;
     }
 
     @Override
     public int getRowWidth() {
-        return this.width - 18; 
+        return this.width - 18;
     }
 }
