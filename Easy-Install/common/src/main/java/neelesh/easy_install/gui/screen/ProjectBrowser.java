@@ -31,7 +31,8 @@ import java.util.function.Function;
 public class ProjectBrowser extends Screen {
     private Identifier[] ICON_TEXTURE_ID = new Identifier[100];
     private static final Identifier SCROLLER_TEXTURE = Identifier.withDefaultNamespace("widget/scroller");
-    public static final Identifier SCROLLER_BACKGROUND_TEXTURE = Identifier.withDefaultNamespace("widget/scroller_background");
+    public static final Identifier SCROLLER_BACKGROUND_TEXTURE = Identifier
+            .withDefaultNamespace("widget/scroller_background");
     private ProjectInfo[] INFO = EasyInstallClient.getProjectInformation();
     private double scrollAmount = 0;
     private EditBox searchBox;
@@ -52,20 +53,24 @@ public class ProjectBrowser extends Screen {
     private Button[] pageButtons = new Button[3];
     private CycleButton<Integer> showPerPage;
     private CycleButton<String> sortButton;
+    private Button infoButton;
     private int pageNumber;
     private static boolean showingFilterOptions = false;
     private static int firstRowY = 35;
     private boolean isScrolling;
     private HashSet<String> categories = new HashSet<String>();
     private boolean initialized;
-    private final Identifier FILTER_TEXTURE = Identifier.fromNamespaceAndPath(EasyInstall.MOD_ID, "textures/gui/filter_icon.png");
-    private final Identifier UPDATE_TEXTURE = Identifier.fromNamespaceAndPath(EasyInstall.MOD_ID, "textures/gui/update_icon.png");
-    public static final Identifier SETTINGS_TEXTURE = Identifier.fromNamespaceAndPath(EasyInstall.MOD_ID, "textures/gui/settings.png");
+    private final Identifier FILTER_TEXTURE = Identifier.fromNamespaceAndPath(EasyInstall.MOD_ID,
+            "textures/gui/filter_icon.png");
+    private final Identifier UPDATE_TEXTURE = Identifier.fromNamespaceAndPath(EasyInstall.MOD_ID,
+            "textures/gui/update_icon.png");
+    public static final Identifier SETTINGS_TEXTURE = Identifier.fromNamespaceAndPath(EasyInstall.MOD_ID,
+            "textures/gui/settings.png");
 
     private final Button filtersButton = Button.builder(Component.nullToEmpty(""), button -> {
         showingFilterOptions = !showingFilterOptions;
     }).build();
-    //private Button updateScreenButton;
+    // private Button updateScreenButton;
     private Button categoriesButton;
     private boolean filteredByGameVersion;
     private Button settingsButton;
@@ -92,20 +97,26 @@ public class ProjectBrowser extends Screen {
     @Override
     protected void init() {
         super.init();
-        showPerPage = CycleButton.<Integer>builder(integer -> Component.nullToEmpty(String.valueOf(integer)), EasyInstallClient::getRowsOnPage).withValues(5, 10, 15, 20, 50, 100).create(55, 22, 105, 18, Component.nullToEmpty("Show per page"), (button, value) -> {
-            pageNumber = 0;
-            EasyInstallClient.setRowsOnPage(value);
-            search(searchBox.getValue());
-            scrollAmount = 0;
-        });
-//        showPerPage.setValue(EasyInstallClient.getRowsOnPage());
-        sortButton = CycleButton.<String>builder(Component::nullToEmpty, EasyInstallClient::getSortMethod).withValues("Relevance", "Downloads", "Follows", "Newest", "Updated").create(165, 22, 90, 18, Component.nullToEmpty("Sort"), (button, value) -> {
-            pageNumber = 0;
-            EasyInstallClient.setSortMethod(value);
-            search(searchBox.getValue());
-            scrollAmount = 0;
-        });
-//        sortButton.setValue(EasyInstallClient.getSortMethod());
+        showPerPage = CycleButton
+                .<Integer>builder(integer -> Component.nullToEmpty(String.valueOf(integer)),
+                        EasyInstallClient::getRowsOnPage)
+                .withValues(5, 10, 15, 20, 50, 100)
+                .create(55, 22, 105, 18, Component.nullToEmpty("Show per page"), (button, value) -> {
+                    pageNumber = 0;
+                    EasyInstallClient.setRowsOnPage(value);
+                    search(searchBox.getValue());
+                    scrollAmount = 0;
+                });
+        // showPerPage.setValue(EasyInstallClient.getRowsOnPage());
+        sortButton = CycleButton.<String>builder(Component::nullToEmpty, EasyInstallClient::getSortMethod)
+                .withValues("Relevance", "Downloads", "Follows", "Newest", "Updated")
+                .create(165, 22, 90, 18, Component.nullToEmpty("Sort"), (button, value) -> {
+                    pageNumber = 0;
+                    EasyInstallClient.setSortMethod(value);
+                    search(searchBox.getValue());
+                    scrollAmount = 0;
+                });
+        // sortButton.setValue(EasyInstallClient.getSortMethod());
         categoriesButton = Button.builder(Component.nullToEmpty("Select Categories"), button -> {
             Minecraft.getInstance().gui.setScreen(new CategoryScreen(this, projectType));
         }).build();
@@ -119,13 +130,14 @@ public class ProjectBrowser extends Screen {
         settingsButton.setPosition(width - 30, 0);
         settingsButton.setTooltip(Tooltip.create(Component.nullToEmpty("Settings")));
         this.addWidget(settingsButton);
-        
-        Button infoButton = Button.builder(Component.nullToEmpty("ℹ"), button -> {
+
+        infoButton = Button.builder(Component.nullToEmpty("ℹ"), button -> {
         }).build();
         infoButton.setSize(20, 20);
         infoButton.setPosition(width - 55, 0);
         infoButton.active = true;
-        infoButton.setTooltip(Tooltip.create(Component.nullToEmpty("REQUIRE APPLY AND RESTART FROM UPDATE SCREEN TO APPLY MODS, Or, Manually Move mods From /config/modupdater/downloads to /mods. (Bug Fix - Mod Files Corrupted)")));
+        infoButton.setTooltip(Tooltip.create(Component.nullToEmpty(
+                "REQUIRE APPLY AND RESTART FROM UPDATE SCREEN TO APPLY MODS, Or, Manually Move mods From /config/modupdater/downloads to /mods. (Bug Fix - Mod Files Corrupted)")));
         this.addWidget(infoButton);
 
         for (int i = 0; i < EasyInstallClient.getRowsOnPage(); i++) {
@@ -158,7 +170,6 @@ public class ProjectBrowser extends Screen {
             thread2.start();
             Thread thread3 = new Thread(() -> this.updatedVersions = EasyInstallClient.getUpdatedVersions(projectType));
             thread3.start();
-
 
         }
         doneButton.setPosition(width / 3 + 65, 0);
@@ -201,7 +212,7 @@ public class ProjectBrowser extends Screen {
         }
         filtersButton.setSize(20, 20);
         filtersButton.setPosition(width / 3 + 205, 0);
-        //        versionButton.setPosition(width/6 + 75, 20);
+        // versionButton.setPosition(width/6 + 75, 20);
         this.addWidget(searchBox);
         this.addWidget(doneButton);
         this.addWidget(backButton);
@@ -211,40 +222,43 @@ public class ProjectBrowser extends Screen {
         this.addWidget(filtersButton);
         for (int i = 0; i < 100; i++) {
             int finalI = i;
-            // Button buttonWidget = Button.builder(Component.nullToEmpty("Install"), button -> {
-            //     INFO[finalI].setInstalling(true);
-            //     Thread thread = new Thread(() -> {
-            //         if (!INFO[finalI].isUpdated()) {
-            //             Thread thread2 = new Thread(() -> {
-            //                 EasyInstallClient.deleteOldFiles(projectType, INFO[finalI].getLatestHash());
-            //             });
-            //             thread2.start();
-            //             for (Version version : updatedVersions) {
-            //                 if (version.getId().equals(INFO[finalI].getId())) {
-            //                     version.download(false);
-            //                 }
-            //             }
-            //         } else {
-            //             EasyInstallClient.downloadVersion(INFO[finalI].getSlug(), projectType, filteredByGameVersion);
-            //         }
-            //         INFO[finalI].setInstalling(false);
-            //         INFO[finalI].setInstalled(true);
-            //         t = new Thread(() -> EasyInstallClient.checkStatus(projectType));
-            //         t.start();
-            //         Thread thread2 = new Thread(() -> this.updatedVersions = EasyInstallClient.getUpdatedVersions(projectType));
-            //         thread2.start();
+            // Button buttonWidget = Button.builder(Component.nullToEmpty("Install"), button
+            // -> {
+            // INFO[finalI].setInstalling(true);
+            // Thread thread = new Thread(() -> {
+            // if (!INFO[finalI].isUpdated()) {
+            // Thread thread2 = new Thread(() -> {
+            // EasyInstallClient.deleteOldFiles(projectType, INFO[finalI].getLatestHash());
+            // });
+            // thread2.start();
+            // for (Version version : updatedVersions) {
+            // if (version.getId().equals(INFO[finalI].getId())) {
+            // version.download(false);
+            // }
+            // }
+            // } else {
+            // EasyInstallClient.downloadVersion(INFO[finalI].getSlug(), projectType,
+            // filteredByGameVersion);
+            // }
+            // INFO[finalI].setInstalling(false);
+            // INFO[finalI].setInstalled(true);
+            // t = new Thread(() -> EasyInstallClient.checkStatus(projectType));
+            // t.start();
+            // Thread thread2 = new Thread(() -> this.updatedVersions =
+            // EasyInstallClient.getUpdatedVersions(projectType));
+            // thread2.start();
 
-            //     });
-            //     thread.start();
+            // });
+            // thread.start();
             // }).build();
 
             Button buttonWidget = Button.builder(Component.nullToEmpty("Install"), button -> {
                 String projectSlug = INFO[finalI].getSlug();
-                
+
                 // Mark globally active!
                 neelesh.easy_install.util.GlobalDownloadTracker.setState(projectSlug, 1);
                 INFO[finalI].setInstalling(true);
-                
+
                 Thread thread = new Thread(() -> {
                     if (!INFO[finalI].isUpdated()) {
                         Thread thread2 = new Thread(() -> {
@@ -259,15 +273,16 @@ public class ProjectBrowser extends Screen {
                     } else {
                         EasyInstallClient.downloadVersion(projectSlug, projectType, filteredByGameVersion);
                     }
-                    
+
                     // Mark globally finished!
                     neelesh.easy_install.util.GlobalDownloadTracker.setState(projectSlug, 2);
                     INFO[finalI].setInstalling(false);
                     INFO[finalI].setInstalled(true);
-                    
+
                     t = new Thread(() -> EasyInstallClient.checkStatus(projectType));
                     t.start();
-                    Thread thread2 = new Thread(() -> this.updatedVersions = EasyInstallClient.getUpdatedVersions(projectType));
+                    Thread thread2 = new Thread(
+                            () -> this.updatedVersions = EasyInstallClient.getUpdatedVersions(projectType));
                     thread2.start();
                 });
                 thread.start();
@@ -297,35 +312,44 @@ public class ProjectBrowser extends Screen {
         } else {
             firstRowY = 35;
         }
-        //updateScreenButton.visible = EasyInstallClient.getNumUpdates() >= 1;
+        // updateScreenButton.visible = EasyInstallClient.getNumUpdates() >= 1;
         context.enableScissor(0, firstRowY - 14, width, height);
         extractMenuBackground(context);
         for (int i = 0; i < EasyInstallClient.getNumRows(); i++) {
             try {
-                context.blit(RenderPipelines.GUI_TEXTURED, ICON_TEXTURE_ID[i], 0, firstRowY + (int) scrollAmount + i * 50, 0, 0, 40, 40, 40, 40);
-                context.text(font, INFO[i].getTitle(), 55, firstRowY + (int) scrollAmount + i * 50, CommonColors.WHITE, false);
-                context.text(font, "by ", 75 + font.width(INFO[i].getTitle()), firstRowY + (int) scrollAmount + i * 50, CommonColors.WHITE, false);
+                context.blit(RenderPipelines.GUI_TEXTURED, ICON_TEXTURE_ID[i], 0,
+                        firstRowY + (int) scrollAmount + i * 50, 0, 0, 40, 40, 40, 40);
+                context.text(font, INFO[i].getTitle(), 55, firstRowY + (int) scrollAmount + i * 50, CommonColors.WHITE,
+                        false);
+                context.text(font, "by ", 75 + font.width(INFO[i].getTitle()), firstRowY + (int) scrollAmount + i * 50,
+                        CommonColors.WHITE, false);
                 int finalI = i;
                 if (children().contains(authors[i])) {
                     removeWidget(authors[i]);
                 }
-                authors[i] = new PressableTextWidgetShadowless(0, 0, font.width(Component.translationArg(Component.nullToEmpty(INFO[i].getAuthor()))), 9, Component.literal(INFO[i].getAuthor()), button -> {
-                    minecraft.gui.setScreen(new ProfileScreen(INFO[finalI].getAuthor(), this));
-                }, font);
-                authors[i].setPosition(75 + font.width(INFO[i].getTitle() + "by "), firstRowY + (int) scrollAmount + i * 50);
+                authors[i] = new PressableTextWidgetShadowless(0, 0,
+                        font.width(Component.translationArg(Component.nullToEmpty(INFO[i].getAuthor()))), 9,
+                        Component.literal(INFO[i].getAuthor()), button -> {
+                            minecraft.gui.setScreen(new ProfileScreen(INFO[finalI].getAuthor(), this));
+                        }, font);
+                authors[i].setPosition(75 + font.width(INFO[i].getTitle() + "by "),
+                        firstRowY + (int) scrollAmount + i * 50);
                 authors[i].extractRenderState(context, mouseX, mouseY, delta);
                 this.addWidget(authors[i]);
-                context.textWithWordWrap(font, FormattedText.of(INFO[i].getDescription().replace("\n", "")), 55, firstRowY + (int) scrollAmount + i * 50 + 15, width - 65, CommonColors.WHITE, false);
+                context.textWithWordWrap(font, FormattedText.of(INFO[i].getDescription().replace("\n", "")), 55,
+                        firstRowY + (int) scrollAmount + i * 50 + 15, width - 65, CommonColors.WHITE, false);
 
                 installButtons[i].setY(firstRowY + (int) scrollAmount + i * 50 - 3);
-                
+
                 // RESTORE STATE CONTEXT FROM PERMANENT SINGLETON
                 String currentSlug = INFO[i].getSlug();
-                boolean isGloballyDownloading = neelesh.easy_install.util.GlobalDownloadTracker.isInstalling(currentSlug);
+                boolean isGloballyDownloading = neelesh.easy_install.util.GlobalDownloadTracker
+                        .isInstalling(currentSlug);
                 boolean isGloballyFinished = neelesh.easy_install.util.GlobalDownloadTracker.isInstalled(currentSlug);
 
                 if (isGloballyDownloading || INFO[i].isInstalling()) {
-                    float currentProgress = neelesh.easy_install.util.GlobalDownloadTracker.getProgress(currentSlug) * 100.0f;
+                    float currentProgress = neelesh.easy_install.util.GlobalDownloadTracker.getProgress(currentSlug)
+                            * 100.0f;
                     // Formats perfectly as "Installing (45%)"
                     installButtons[i].setMessage(Component.nullToEmpty(String.format("(%d%%)", (int) currentProgress)));
                 } else if (isGloballyFinished || INFO[i].isInstalled()) {
@@ -335,43 +359,54 @@ public class ProjectBrowser extends Screen {
                 } else {
                     installButtons[i].setMessage(Component.nullToEmpty("Update"));
                 }
-                
-                installButtons[i].active = !INFO[i].isInstalled() && !INFO[i].isInstalling() && !isGloballyDownloading && !isGloballyFinished;
+
+                installButtons[i].active = !INFO[i].isInstalled() && !INFO[i].isInstalling() && !isGloballyDownloading
+                        && !isGloballyFinished;
                 installButtons[i].extractRenderState(context, mouseX, mouseY, delta);
                 projectScreenButtons[i].setY(firstRowY + (int) scrollAmount + i * 50 - 3);
                 projectScreenButtons[i].extractRenderState(context, mouseX, mouseY, delta);
-
 
             } catch (NullPointerException ignored) {
 
             }
         }
-        int scrollBarHeight = Math.max(35, (int) (Math.pow(height - firstRowY + 13, 2) / (EasyInstallClient.getNumRows() * 50 + 35)));
+        int scrollBarHeight = Math.max(35,
+                (int) (Math.pow(height - firstRowY + 13, 2) / (EasyInstallClient.getNumRows() * 50 + 35)));
         double scrollBarY = firstRowY - 13;
         if (-50 * EasyInstallClient.getNumRows() - firstRowY + height - 35 < 0) {
-            scrollBarY = scrollAmount * (height - firstRowY + 13 - scrollBarHeight) / (-50 * EasyInstallClient.getNumRows() - firstRowY + height - 35) + firstRowY - 13;
+            scrollBarY = scrollAmount * (height - firstRowY + 13 - scrollBarHeight)
+                    / (-50 * EasyInstallClient.getNumRows() - firstRowY + height - 35) + firstRowY - 13;
         }
         if (scrollBarHeight < height - firstRowY + 13) {
-            context.blitSprite(RenderPipelines.GUI_TEXTURED, SCROLLER_BACKGROUND_TEXTURE, width - 6, 0, 6, EasyInstallClient.getNumRows() * 50 + 100);
-            context.blitSprite(RenderPipelines.GUI_TEXTURED, SCROLLER_TEXTURE, width - 6, (int) scrollBarY, 6, scrollBarHeight);
+            context.blitSprite(RenderPipelines.GUI_TEXTURED, SCROLLER_BACKGROUND_TEXTURE, width - 6, 0, 6,
+                    EasyInstallClient.getNumRows() * 50 + 100);
+            context.blitSprite(RenderPipelines.GUI_TEXTURED, SCROLLER_TEXTURE, width - 6, (int) scrollBarY, 6,
+                    scrollBarHeight);
         }
         for (int i = 0; i < 100; i++) {
-            projectScreenButtons[i].visible = i < showPerPage.getValue() && projectScreenButtons[i].getY() > firstRowY - 26;
+            projectScreenButtons[i].visible = i < showPerPage.getValue()
+                    && projectScreenButtons[i].getY() > firstRowY - 26;
             installButtons[i].visible = i < showPerPage.getValue() && installButtons[i].getY() > firstRowY - 26;
-            if (authors[i] != null){
+            if (authors[i] != null) {
                 authors[i].visible = i < showPerPage.getValue() && authors[i].getY() > firstRowY - 26;
             }
         }
         backButton.extractRenderState(context, mouseX, mouseY, delta);
         backButton.active = pageNumber != 0;
         if (EasyInstallClient.getTotalPages() <= 5) {
-            backButton.setPosition(width / 2 - 60 + 12 * (3 - EasyInstallClient.getTotalPages()), firstRowY + (int) scrollAmount + EasyInstallClient.getNumRows() * 50);
-            nextButton.setPosition(width / 2 + 40 - 12 * (3 - EasyInstallClient.getTotalPages()), firstRowY + (int) scrollAmount + EasyInstallClient.getNumRows() * 50);
-            firstPage.setPosition(width / 2 - 35 + 12 * (3 - EasyInstallClient.getTotalPages()), firstRowY + (int) scrollAmount + EasyInstallClient.getNumRows() * 50);
-            lastPage.setPosition(width / 2 + 15 - 12 * (3 - EasyInstallClient.getTotalPages()), firstRowY + (int) scrollAmount + EasyInstallClient.getNumRows() * 50);
+            backButton.setPosition(width / 2 - 60 + 12 * (3 - EasyInstallClient.getTotalPages()),
+                    firstRowY + (int) scrollAmount + EasyInstallClient.getNumRows() * 50);
+            nextButton.setPosition(width / 2 + 40 - 12 * (3 - EasyInstallClient.getTotalPages()),
+                    firstRowY + (int) scrollAmount + EasyInstallClient.getNumRows() * 50);
+            firstPage.setPosition(width / 2 - 35 + 12 * (3 - EasyInstallClient.getTotalPages()),
+                    firstRowY + (int) scrollAmount + EasyInstallClient.getNumRows() * 50);
+            lastPage.setPosition(width / 2 + 15 - 12 * (3 - EasyInstallClient.getTotalPages()),
+                    firstRowY + (int) scrollAmount + EasyInstallClient.getNumRows() * 50);
         } else {
-            backButton.setPosition(width / 2 - 110, firstRowY + (int) scrollAmount + EasyInstallClient.getNumRows() * 50);
-            nextButton.setPosition(width / 2 + 90, firstRowY + (int) scrollAmount + EasyInstallClient.getNumRows() * 50);
+            backButton.setPosition(width / 2 - 110,
+                    firstRowY + (int) scrollAmount + EasyInstallClient.getNumRows() * 50);
+            nextButton.setPosition(width / 2 + 90,
+                    firstRowY + (int) scrollAmount + EasyInstallClient.getNumRows() * 50);
             firstPage.setPosition(width / 2 - 85, firstRowY + (int) scrollAmount + EasyInstallClient.getNumRows() * 50);
             lastPage.setPosition(width / 2 + 65, firstRowY + (int) scrollAmount + EasyInstallClient.getNumRows() * 50);
         }
@@ -388,25 +423,39 @@ public class ProjectBrowser extends Screen {
                     pageButtons[i].active = i != 1;
                 } else if (pageNumber >= EasyInstallClient.getTotalPages() - 2) {
 
-                    pageButtons[i].setMessage(Component.nullToEmpty(String.valueOf(EasyInstallClient.getTotalPages() + i - 3)));
+                    pageButtons[i].setMessage(
+                            Component.nullToEmpty(String.valueOf(EasyInstallClient.getTotalPages() + i - 3)));
                     pageButtons[i].active = i != 3 - EasyInstallClient.getTotalPages() + pageNumber + 1;
                 }
 
-
                 if (EasyInstallClient.getTotalPages() <= 5) {
-                    pageButtons[i].setPosition(width / 2 - 85 + (int) (12.5 * (5 - EasyInstallClient.getTotalPages())) + 25 * (i + 2), firstRowY + (int) scrollAmount + EasyInstallClient.getNumRows() * 50);
+                    pageButtons[i].setPosition(
+                            width / 2 - 85 + (int) (12.5 * (5 - EasyInstallClient.getTotalPages())) + 25 * (i + 2),
+                            firstRowY + (int) scrollAmount + EasyInstallClient.getNumRows() * 50);
                 } else if ((pageNumber < EasyInstallClient.getTotalPages() - 3 && pageNumber >= 3)) {
-                    pageButtons[i].setPosition(width / 2 - 85 + 25 * (i + 2), firstRowY + (int) scrollAmount + EasyInstallClient.getNumRows() * 50);
-                    context.text(font, "—", width / 2 - 53, firstRowY + (int) scrollAmount + EasyInstallClient.getNumRows() * 50 + 7, CommonColors.WHITE, true);
-                    context.text(font, "—", width / 2 + 46, firstRowY + (int) scrollAmount + EasyInstallClient.getNumRows() * 50 + 7, CommonColors.WHITE, true);
+                    pageButtons[i].setPosition(width / 2 - 85 + 25 * (i + 2),
+                            firstRowY + (int) scrollAmount + EasyInstallClient.getNumRows() * 50);
+                    context.text(font, "—", width / 2 - 53,
+                            firstRowY + (int) scrollAmount + EasyInstallClient.getNumRows() * 50 + 7,
+                            CommonColors.WHITE, true);
+                    context.text(font, "—", width / 2 + 46,
+                            firstRowY + (int) scrollAmount + EasyInstallClient.getNumRows() * 50 + 7,
+                            CommonColors.WHITE, true);
                 } else if (pageNumber < 3) {
-                    pageButtons[i].setPosition(width / 2 - 110 + 25 * (i + 2), firstRowY + (int) scrollAmount + EasyInstallClient.getNumRows() * 50);
-                    context.text(font, "—", width / 2 + 29 + 5 * i, firstRowY + (int) scrollAmount + EasyInstallClient.getNumRows() * 50 + 7, CommonColors.WHITE, true);
+                    pageButtons[i].setPosition(width / 2 - 110 + 25 * (i + 2),
+                            firstRowY + (int) scrollAmount + EasyInstallClient.getNumRows() * 50);
+                    context.text(font, "—", width / 2 + 29 + 5 * i,
+                            firstRowY + (int) scrollAmount + EasyInstallClient.getNumRows() * 50 + 7,
+                            CommonColors.WHITE, true);
                 } else {
-                    pageButtons[i].setPosition(width / 2 - 60 + 25 * (i + 2), firstRowY + (int) scrollAmount + EasyInstallClient.getNumRows() * 50);
-                    context.text(font, "—", width / 2 - 46 + 5 * i, firstRowY + (int) scrollAmount + EasyInstallClient.getNumRows() * 50 + 7, CommonColors.WHITE, true);
+                    pageButtons[i].setPosition(width / 2 - 60 + 25 * (i + 2),
+                            firstRowY + (int) scrollAmount + EasyInstallClient.getNumRows() * 50);
+                    context.text(font, "—", width / 2 - 46 + 5 * i,
+                            firstRowY + (int) scrollAmount + EasyInstallClient.getNumRows() * 50 + 7,
+                            CommonColors.WHITE, true);
                 }
-                pageButtons[i].visible = Integer.parseInt(pageButtons[i].getMessage().getString()) < EasyInstallClient.getTotalPages() && Integer.parseInt(pageButtons[i].getMessage().getString()) > 1;
+                pageButtons[i].visible = Integer.parseInt(pageButtons[i].getMessage().getString()) < EasyInstallClient
+                        .getTotalPages() && Integer.parseInt(pageButtons[i].getMessage().getString()) > 1;
                 pageButtons[i].extractRenderState(context, mouseX, mouseY, delta);
             }
         }
@@ -416,7 +465,8 @@ public class ProjectBrowser extends Screen {
         firstPage.active = pageNumber != 0;
         firstPage.extractRenderState(context, mouseX, mouseY, delta);
         context.disableScissor();
-        context.blit(RenderPipelines.GUI_TEXTURED, CreateWorldScreen.HEADER_SEPARATOR, 0, firstRowY - 15, 0, 0, width, 2, width, 2);
+        context.blit(RenderPipelines.GUI_TEXTURED, CreateWorldScreen.HEADER_SEPARATOR, 0, firstRowY - 15, 0, 0, width,
+                2, width, 2);
         showPerPage.visible = showingFilterOptions;
         showPerPage.extractRenderState(context, mouseX, mouseY, delta);
         sortButton.visible = showingFilterOptions;
@@ -424,24 +474,29 @@ public class ProjectBrowser extends Screen {
         filtersButton.extractRenderState(context, mouseX, mouseY, delta);
         searchBox.extractRenderState(context, mouseX, mouseY, delta);
         doneButton.extractRenderState(context, mouseX, mouseY, delta);
-        //updateScreenButton.extractRenderState(context, mouseX, mouseY, delta);
+        // updateScreenButton.extractRenderState(context, mouseX, mouseY, delta);
         categoriesButton.visible = showingFilterOptions;
         categoriesButton.extractRenderState(context, mouseX, mouseY, delta);
         settingsButton.extractRenderState(context, mouseX, mouseY, delta);
-        context.blit(RenderPipelines.GUI_TEXTURED, FILTER_TEXTURE, filtersButton.getX() + 2, filtersButton.getY() + 2, 0, 0, 16, 16, 16, 16);
-        context.blit(RenderPipelines.GUI_TEXTURED, SETTINGS_TEXTURE, settingsButton.getX() + 2, settingsButton.getY() + 2, -0.5f, 0, 16, 16, 16, 16);
+        context.blit(RenderPipelines.GUI_TEXTURED, FILTER_TEXTURE, filtersButton.getX() + 2, filtersButton.getY() + 2,
+                0, 0, 16, 16, 16, 16);
+        context.blit(RenderPipelines.GUI_TEXTURED, SETTINGS_TEXTURE, settingsButton.getX() + 2,
+                settingsButton.getY() + 2, -0.5f, 0, 16, 16, 16, 16);
 
         // if (EasyInstallClient.getNumUpdates() >= 1) {
-        //     context.blit(RenderPipelines.GUI_TEXTURED, UPDATE_TEXTURE, updateScreenButton.getX() + 3, updateScreenButton.getY() + 3, 0, 0, 14, 14, 14, 14);
+        // context.blit(RenderPipelines.GUI_TEXTURED, UPDATE_TEXTURE,
+        // updateScreenButton.getX() + 3, updateScreenButton.getY() + 3, 0, 0, 14, 14,
+        // 14, 14);
         // }
     }
 
-
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
-        if (scrollAmount + verticalAmount * 13 <= 0 && scrollAmount + verticalAmount * 13 >= -50 * EasyInstallClient.getNumRows() - (double) firstRowY + height - 35) {
+        if (scrollAmount + verticalAmount * 13 <= 0 && scrollAmount
+                + verticalAmount * 13 >= -50 * EasyInstallClient.getNumRows() - (double) firstRowY + height - 35) {
             scrollAmount += verticalAmount * 13;
-        } else if (scrollAmount + verticalAmount * 13 < -50 * EasyInstallClient.getNumRows() - (double) firstRowY + height - 35 && scrollAmount != 0) {
+        } else if (scrollAmount + verticalAmount * 13 < -50 * EasyInstallClient.getNumRows() - (double) firstRowY
+                + height - 35 && scrollAmount != 0) {
             scrollAmount = -50 * EasyInstallClient.getNumRows() - firstRowY + height - 35;
         } else if (scrollAmount + verticalAmount * 13 > 0) {
             scrollAmount = 0;
@@ -481,7 +536,6 @@ public class ProjectBrowser extends Screen {
         return keyPressed;
     }
 
-
     @Override
     public boolean charTyped(CharacterEvent input) {
         boolean charTyped = super.charTyped(input);
@@ -500,7 +554,8 @@ public class ProjectBrowser extends Screen {
             t.interrupt();
         }
         searchThread = new Thread(() -> {
-            EasyInstallClient.search(query, projectType, pageNumber * EasyInstallClient.getRowsOnPage(), categories, filteredByGameVersion, environment);
+            EasyInstallClient.search(query, projectType, pageNumber * EasyInstallClient.getRowsOnPage(), categories,
+                    filteredByGameVersion, environment);
             if (scrollAmount >= 0 || -50 * EasyInstallClient.getNumRows() - firstRowY + height - 35 >= 0) {
                 scrollAmount = 0;
             } else if (scrollAmount < -50 * EasyInstallClient.getNumRows() - firstRowY + height - 35) {
@@ -515,7 +570,8 @@ public class ProjectBrowser extends Screen {
                 });
                 t.start();
 
-                Thread thread2 = new Thread(() -> updatedVersions = EasyInstallClient.getUpdatedVersions(this.projectType));
+                Thread thread2 = new Thread(
+                        () -> updatedVersions = EasyInstallClient.getUpdatedVersions(this.projectType));
                 thread2.start();
                 loadIcons();
             }
@@ -525,10 +581,12 @@ public class ProjectBrowser extends Screen {
 
     @Override
     public boolean mouseClicked(MouseButtonEvent click, boolean doubled) {
-        int scrollBarHeight = Math.max(35, (int) (Math.pow(height - firstRowY + 13, 2) / (EasyInstallClient.getNumRows() * 50 + 35)));
+        int scrollBarHeight = Math.max(35,
+                (int) (Math.pow(height - firstRowY + 13, 2) / (EasyInstallClient.getNumRows() * 50 + 35)));
         double scrollBarY;
         if (-50 * EasyInstallClient.getNumRows() - firstRowY + height - 35 < 0) {
-            scrollBarY = scrollAmount * (height - firstRowY + 13 - scrollBarHeight) / (-50 * EasyInstallClient.getNumRows() - firstRowY + height - 35) + firstRowY - 13;
+            scrollBarY = scrollAmount * (height - firstRowY + 13 - scrollBarHeight)
+                    / (-50 * EasyInstallClient.getNumRows() - firstRowY + height - 35) + firstRowY - 13;
         } else {
             scrollBarY = firstRowY - 13;
         }
@@ -538,18 +596,21 @@ public class ProjectBrowser extends Screen {
         return super.mouseClicked(click, doubled);
     }
 
-
     @Override
     public boolean mouseDragged(MouseButtonEvent click, double offsetX, double offsetY) {
         if (this.isScrolling && click.y() > firstRowY - 13) {
-            double scrollBarHeight = Math.max(35.0, (Math.pow(height - firstRowY + 13, 2) / (EasyInstallClient.getNumRows() * 50 + 35)));
-            double scrollDeltaY = (-50 * EasyInstallClient.getNumRows() - firstRowY + height - 35) * offsetY / (height - firstRowY + 13 - scrollBarHeight);
+            double scrollBarHeight = Math.max(35.0,
+                    (Math.pow(height - firstRowY + 13, 2) / (EasyInstallClient.getNumRows() * 50 + 35)));
+            double scrollDeltaY = (-50 * EasyInstallClient.getNumRows() - firstRowY + height - 35) * offsetY
+                    / (height - firstRowY + 13 - scrollBarHeight);
 
-            if (scrollAmount + scrollDeltaY <= 0 && scrollAmount + scrollDeltaY >= -50 * EasyInstallClient.getNumRows() - firstRowY + height - 35) {
+            if (scrollAmount + scrollDeltaY <= 0
+                    && scrollAmount + scrollDeltaY >= -50 * EasyInstallClient.getNumRows() - firstRowY + height - 35) {
                 scrollAmount += scrollDeltaY;
             } else if (scrollAmount + scrollDeltaY > 0) {
                 scrollAmount = 0;
-            } else if (scrollAmount + scrollDeltaY < -50 * EasyInstallClient.getNumRows() - firstRowY + height - 35 && scrollAmount != 0) {
+            } else if (scrollAmount + scrollDeltaY < -50 * EasyInstallClient.getNumRows() - firstRowY + height - 35
+                    && scrollAmount != 0) {
                 scrollAmount = -50 * EasyInstallClient.getNumRows() - firstRowY + height - 35;
             }
         }
@@ -593,7 +654,6 @@ public class ProjectBrowser extends Screen {
     public void setFilteredByGameVersion(boolean isFiltered) {
         this.filteredByGameVersion = isFiltered;
     }
-
 
     public void setEnvironment(Environment environment) {
         this.environment = environment;
