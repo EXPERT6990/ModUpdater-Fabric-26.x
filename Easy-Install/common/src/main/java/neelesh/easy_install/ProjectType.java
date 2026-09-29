@@ -5,5 +5,5 @@ public enum ProjectType {
     RESOURCE_PACK,
     DATA_PACK,
     SHADER;
-    WORLD;
+    //WORLD;
 }
