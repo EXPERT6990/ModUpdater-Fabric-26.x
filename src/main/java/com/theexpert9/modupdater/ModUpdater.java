@@ -1,11 +1,17 @@
 package com.theexpert9.modupdater;
 
+import java.util.concurrent.CompletableFuture;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.mojang.blaze3d.platform.InputConstants;
+import com.theexpert9.modupdater.gui.CustomUpdateScreen;
 import com.theexpert9.modupdater.gui.UpdateScreen;
 import com.theexpert9.modupdater.util.ConfigManager;
 import com.theexpert9.modupdater.util.DownloadManager;
 import com.theexpert9.modupdater.util.UpdateManager;
-import com.theexpert9.modupdater.gui.CustomUpdateScreen;
+
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -15,11 +21,6 @@ import net.minecraft.client.KeyMapping;
 import net.minecraft.client.gui.components.toasts.SystemToast;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
-import org.lwjgl.glfw.GLFW;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.concurrent.CompletableFuture;
 
 public class ModUpdater implements ClientModInitializer {
     public static final Logger LOGGER = LoggerFactory.getLogger("modupdater");
@@ -39,7 +40,8 @@ public class ModUpdater implements ClientModInitializer {
         KeyMapping openUpdaterKey = KeyMappingHelper.registerKeyMapping(
             new KeyMapping(
                 "Update Screen", 
-                org.lwjgl.glfw.GLFW.GLFW_KEY_U, // Default key
+                //org.lwjgl.glfw.GLFW.GLFW_KEY_U, // Default key
+                InputConstants.KEY_U,
                 UPDATER_CATEGORY
             )
         );
@@ -56,8 +58,8 @@ public class ModUpdater implements ClientModInitializer {
         
         KeyMapping openUpdateScreenKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
                 "ModUpdaterFabric Settings",
-                InputConstants.Type.KEYSYM,
-                GLFW.GLFW_KEY_F12,
+                InputConstants.Type.KEYBOARD,
+                InputConstants.KEY_F12,
                 UPDATER_CATEGORY
         ));
 

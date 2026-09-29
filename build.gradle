@@ -48,8 +48,8 @@ dependencies {
     implementation "dev.isxander:yet-another-config-lib:${project.yacl_version}"
 
     // Use the exact name of the jar file (excluding the .jar extension)
-    implementation name: '../Easy-Install/fabric/build/libs/easy-install-fabric-ModUpdaterFabric-26.2'
-    include name: '../Easy-Install/fabric/build/libs/easy-install-fabric-ModUpdaterFabric-26.2'
+    implementation name: '../Easy-Install/fabric/build/libs/easy-install-fabric-ModUpdaterFabric-26.3'
+    include name: '../Easy-Install/fabric/build/libs/easy-install-fabric-ModUpdaterFabric-26.3'
 
 }
 
@@ -72,13 +72,30 @@ java {
     targetCompatibility = JavaVersion.VERSION_25
 }
 
-jar {
-	def projectName = project.name
-	inputs.property "projectName", projectName
+def easyInstallJar = fileTree("${rootDir}/Easy-Install/fabric/build/libs") {
+    include 'easy-install-fabric-*.jar'
+    exclude '*-sources.jar'
+}
 
-	from("LICENSE") {
-		rename { "${it}_$projectName"}
-	}
+task buildEasyInstallJar(type: Exec) {
+    workingDir "${rootDir}/Easy-Install"
+    commandLine './gradlew', 'build'
+}
+
+jar {
+    dependsOn buildEasyInstallJar
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+    def projectName = project.name
+    inputs.property "projectName", projectName
+
+    if (easyInstallJar.files.size() > 0) {
+        from zipTree(easyInstallJar.files[0])
+    }
+
+    from("LICENSE") {
+        rename { "${it}_$projectName"}
+    }
 }
 
 

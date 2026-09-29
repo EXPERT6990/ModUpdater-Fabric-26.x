@@ -25,9 +25,10 @@ import net.minecraft.network.chat.FormattedText;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.CommonColors;
 import net.minecraft.resources.Identifier;
-import net.minecraft.util.Util;
 import org.jetbrains.annotations.Nullable;
 
+import java.awt.Desktop;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -84,8 +85,10 @@ public class ProjectScreen extends Screen implements MarkdownScreenInterface {
 
     private final Button siteButton = Button.builder(Component.nullToEmpty("Modrinth↗"), button -> {
         try {
-            Util.getPlatform().openUri(new URI("https://modrinth.com/project/" + projectInfo.getSlug()));
-        } catch (URISyntaxException e) {
+            if (Desktop.isDesktopSupported()) {
+                Desktop.getDesktop().browse(new URI("https://modrinth.com/project/" + projectInfo.getSlug()));
+            }
+        } catch (URISyntaxException | IOException e) {
             throw new RuntimeException(e);
         }
     }).build();
