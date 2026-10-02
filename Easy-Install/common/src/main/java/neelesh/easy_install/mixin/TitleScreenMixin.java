@@ -17,7 +17,9 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.contents.TranslatableContents;
 
 @Mixin(TitleScreen.class)
 public class TitleScreenMixin extends Screen {
@@ -31,11 +33,11 @@ public class TitleScreenMixin extends Screen {
         Button quitButton = null;
 
 		for (var widget : this.children()) {
-			if(widget instanceof Button button && button.getMessage().getString().equals("Mods")) {
+			if(widget instanceof Button button && hasTranslationKey(button.getMessage(), "modmenu.title")) {
 				quitButton = button;
 				break;
 			}
-			else if (widget instanceof Button button && button.getMessage().getString().equals("Quit Game")) {
+			else if (widget instanceof Button button && hasTranslationKey(button.getMessage(), "menu.quit")) {
 				quitButton = button;
 				break;
 			}
@@ -62,7 +64,7 @@ public class TitleScreenMixin extends Screen {
 
 		Button updaterButton;
         // Initialize our new local class
-    	if (quitButton.getMessage().getString().equals("Mods")) {
+    	if (hasTranslationKey(quitButton.getMessage(), "modmenu.title")) {
 			updaterButton = new UpdaterButton(quitButton.getX() + quitButton.getWidth() - 4 * 24 - 20, quitButton.getY(), 20,
 					20, Component.literal("Mod Updater"), button -> {
 						ProjectBrowser modBrowser = new ProjectBrowser(this, ProjectType.MOD);
@@ -76,4 +78,12 @@ public class TitleScreenMixin extends Screen {
 		}
         updaterButton.setTooltip(Tooltip.create(Component.literal("Get Mods")));
         this.addRenderableWidget(updaterButton);
-    }}
+    }
+
+	private static boolean hasTranslationKey(Component component, String expectedKey) {
+        if (component.getContents() instanceof TranslatableContents translatable) {
+            return translatable.getKey().equals(expectedKey);
+        }
+        return false;
+    }
+}

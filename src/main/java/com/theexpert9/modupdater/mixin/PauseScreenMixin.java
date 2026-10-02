@@ -14,9 +14,18 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.contents.TranslatableContents;
 
 @Mixin(PauseScreen.class)
 public class PauseScreenMixin extends Screen {
+
+    // Helper to check translation keys safely
+    private boolean hasKey(Component component, String key) {
+        return component.getContents() instanceof TranslatableContents translatable 
+                && translatable.getKey().equals(key);
+    }
     
     protected PauseScreenMixin(Component title) {
         super(title);
@@ -29,13 +38,19 @@ public class PauseScreenMixin extends Screen {
         // 1. SAFELY find the button (Accounts for Multiplayer "Disconnect" buttons)
         for (var widget : this.children()) {
             if (widget instanceof Button button) {
-                String text = button.getMessage().getString();
-                if (text.equals("Mods") || text.equals("Save and Quit to Title") || text.equals("Disconnect")) {
-                    referenceButton = button;
-                    // If we find Mod Menu's "Mods" button, prioritize it and stop searching!
-                    if (text.equals("Mods")) break;
+            Component msg = button.getMessage();
+
+            boolean isModMenu = hasKey(msg, "modmenu.title");
+            boolean isQuitToTitle = hasKey(msg, "menu.returnToMenu"); // "Save and Quit to Title"
+            boolean isDisconnect = hasKey(msg, "menu.disconnect");    // "Disconnect"
+
+            if (isModMenu || isQuitToTitle || isDisconnect) {
+                referenceButton = button;
+                if (isModMenu) {
+                    break;
                 }
             }
+        }
         }
 
         // 2. PREVENT CRASH: If no known button is found, safely abort instead of crashing.
