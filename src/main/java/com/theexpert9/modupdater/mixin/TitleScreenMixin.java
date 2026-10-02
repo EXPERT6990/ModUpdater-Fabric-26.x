@@ -25,6 +25,13 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.contents.TranslatableContents;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.contents.TranslatableContents;
+
+
 @Mixin(TitleScreen.class)
 public abstract class TitleScreenMixin extends Screen {
 
@@ -38,16 +45,16 @@ public abstract class TitleScreenMixin extends Screen {
         Button applySide = null;
 
         for (var widget : this.children()) {
-            if (widget instanceof Button button && button.getMessage().getString().equals("Mods")) {
+            if (widget instanceof Button button && hasTranslationKey(button.getMessage(), "modmenu.title")) {
                 quitButton = button;
                 break;
-            } else if (widget instanceof Button button && button.getMessage().getString().equals("Quit Game")) {
+            } else if (widget instanceof Button button && hasTranslationKey(button.getMessage(), "menu.quit")) {
                 quitButton = button;
                 break;
             }
         }
         for (var widget : this.children()) {
-			if (widget instanceof Button button && button.getMessage().getString().equals("Quit Game")) {
+			if (widget instanceof Button button && hasTranslationKey(button.getMessage(), "menu.quit")) {
                 applySide = button;
 				break;
 			}
@@ -123,5 +130,15 @@ public abstract class TitleScreenMixin extends Screen {
             if (Files.exists(pendingDir.resolve("update_status.json")) || Files.exists(pendingDir.getParent().resolve("downloads").resolve("download.json")))
                 return true;
             else return false;
+    }
+
+
+
+// Check if a component has a specific translation key
+    private static boolean hasTranslationKey(Component component, String expectedKey) {
+        if (component.getContents() instanceof TranslatableContents translatable) {
+            return translatable.getKey().equals(expectedKey);
+        }
+        return false;
     }
 }

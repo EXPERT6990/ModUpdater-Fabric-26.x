@@ -19,10 +19,18 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.contents.TranslatableContents;
 
 @Mixin(PauseScreen.class)
 public class PauseScreenMixin extends Screen {
     boolean isModsButton = false;
+    // Helper to check translation keys safely
+    private boolean hasKey(Component component, String key) {
+        return component.getContents() instanceof TranslatableContents translatable 
+                && translatable.getKey().equals(key);
+    }
     protected PauseScreenMixin(Component title) {
         super(title);
     }
@@ -33,15 +41,31 @@ public class PauseScreenMixin extends Screen {
         Button quitButton = null;
 
         for (var widget : this.children()) {
-            if (widget instanceof Button button && button.getMessage().getString().equals("Mods")) {
-                isModsButton = true;
+            // if (widget instanceof Button button && hasTranslationKey(button.getMessage(), "modmenu.title")) {
+            //     isModsButton = true;
+            //     quitButton = button;
+            //     break;
+            // }
+            // else if (widget instanceof Button button && button.getMessage().getString().equals("Save and Quit to Title")) {
+            //     quitButton = button;
+            //     break;
+            // }
+
+
+            if (widget instanceof Button button) {
+            Component msg = button.getMessage();
+
+            boolean isModsButton = hasKey(msg, "modmenu.title");
+            boolean isQuitToTitle = hasKey(msg, "menu.returnToMenu"); // "Save and Quit to Title"
+            boolean isDisconnect = hasKey(msg, "menu.disconnect");    // "Disconnect"
+
+            if (isModsButton || isQuitToTitle || isDisconnect) {
                 quitButton = button;
-                break;
+                if (isModsButton) {
+                    break;
+                }
             }
-            else if (widget instanceof Button button && button.getMessage().getString().equals("Save and Quit to Title")) {
-                quitButton = button;
-                break;
-            }
+        }
         }
 
         // 1. We create a clean Local Class that formally extends Button

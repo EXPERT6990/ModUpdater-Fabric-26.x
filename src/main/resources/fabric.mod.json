@@ -29,5 +29,5 @@
     "modmenu": ">=20.0.0-beta.1",
     "yet_another_config_lib_v3": ">=3.9.3+26.2"
   },
-  "mixins": ["modupdater.mixins.json"]
+  "mixins": ["modupdater.mixins.json","easy-install.mixins.json"]
 }

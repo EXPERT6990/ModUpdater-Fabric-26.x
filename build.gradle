@@ -49,7 +49,7 @@ dependencies {
 
     // Use the exact name of the jar file (excluding the .jar extension)
     implementation name: '../Easy-Install/fabric/build/libs/easy-install-fabric-ModUpdaterFabric-26.3'
-    include name: '../Easy-Install/fabric/build/libs/easy-install-fabric-ModUpdaterFabric-26.3'
+    //include name: '../Easy-Install/fabric/build/libs/easy-install-fabric-ModUpdaterFabric-26.3'
 
 }
 
